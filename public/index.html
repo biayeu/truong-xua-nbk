@@ -864,7 +864,7 @@ function setMode(m){
  if(m==='walk'){tween=null;try{faceYaw=yaw+Math.PI}catch(e){}
   // điểm nhìn của chế độ Tham quan có thể nằm giữa sông, trên mái nhà: chuyển sang tự đi thì đặt chân xuống chỗ đi được gần nhất
   if(!inRoom&&pos.y<40){let ok=!hit(pos.x,pos.z);if(!ok)for(let r=1;r<=60&&!ok;r+=1)for(let k=0;k<16&&!ok;k++){const a=k/16*Math.PI*2,x=pos.x+Math.cos(a)*r,z=pos.z+Math.sin(a)*r;if(!hit(x,z)){pos.x=x;pos.z=z;ok=true}}
-   if(!ok){pos.x=-7.85;pos.z=12}pos.y=1.6;velX=velZ=0;try{syncFeet()}catch(e){}}h.textContent=isTouch?'Kéo bên trái màn hình để đi, kéo bên phải để nhìn quanh. Chạm vào trống, cây phượng, bảng đen.':'Dùng phím W A S D hoặc mũi tên để đi, kéo chuột để nhìn quanh. Bấm vào trống, cây phượng, bảng đen.';h.hidden=false;h.style.opacity=1;clearTimeout(hintT);hintT=setTimeout(()=>{h.style.opacity=0;setTimeout(()=>h.hidden=true,600)},7000)}
+   if(!ok){pos.x=-7.85;pos.z=12}pos.y=1.6;velX=velZ=0;try{syncFeet()}catch(e){}}h.textContent=isTouch?'Chỉ cần một ngón: đặt ngón bên trái màn hình rồi đẩy lên để đi, đẩy sang trái/phải để vừa đi vừa quay. Kéo bên phải để nhìn quanh (không bắt buộc). Chạm vào trống, cây phượng, bảng đen.':'Dùng phím W A S D hoặc mũi tên để đi, kéo chuột để nhìn quanh. Bấm vào trống, cây phượng, bảng đen.';h.hidden=false;h.style.opacity=1;clearTimeout(hintT);hintT=setTimeout(()=>{h.style.opacity=0;setTimeout(()=>h.hidden=true,600)},7000)}
  else{h.hidden=true;goStop(stop)}
 }
 $('#mTour').onclick=()=>setMode('tour');$('#mWalk').onclick=()=>setMode('walk');
@@ -1431,7 +1431,7 @@ function loop(now){
  if(mode!=='intro'&&!anyModal()){
   let fw=0,st=0;
   if(keys.KeyW||keys.ArrowUp)fw+=1;if(keys.KeyS||keys.ArrowDown)fw-=1;if(keys.KeyA||keys.ArrowLeft)st-=1;if(keys.KeyD||keys.ArrowRight)st+=1;
-  if(joy){fw-=joy.dy/55;st+=joy.dx/55}
+  if(joy){fw-=joy.dy/55;if(!tween)yaw-=Math.abs(joy.dx)>8?joy.dx/55*1.9*dt:0} // chạm một ngón: đẩy cần sang trái/phải là vừa đi vừa quay hướng nhìn
   let mag=Math.min(1,Math.hypot(fw,st));if(mag<.08)mag=0;
   if(mag&&mode!=='walk')setMode('walk');
   if(mode==='walk'&&!tween){if(pos.y>40){moving=false;if(mag)pos.y+=(feetY+1.6-pos.y)*.2}else walkStep(dt,fw,st,mag)}
