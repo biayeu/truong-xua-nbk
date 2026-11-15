@@ -1,0 +1,10 @@
+{
+  // Cấu hình Cloudflare cho trang "Về thăm trường xưa"
+  "name": "truong-xua-nbk",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  "durable_objects": { "bindings": [{ "name": "SCHOOL", "class_name": "School" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["School"] }],
+  "observability": { "enabled": true }
+}
