@@ -3269,7 +3269,7 @@ function buildDot9(){
  /* dựng người: o={sex,age,kind:'hs'|'adult'|'elder'|'kid', seated} */
  function person(o){const g=new THREE.Group();const nu=o.sex==='nu',kid=o.kind==='kid',old=o.kind==='elder',hs=o.kind==='hs';const sc=kid?.8:nu?.96:old?.97:1;
   const skin=MC(pick9(SKIN));let topC,botC;
-  if(hs){topC=winter?0x1c2846:0xffffff;botC=nu&&!winter?0x1c2846:0x1c2846}else{topC=pick9(TOPS);botC=pick9(BOTS)}
+  if(hs){topC=winter?0x1c2846:0xffffff;botC=nu&&!winter?0x1c2846:0x1c2846}else{topC=o.topC!=null?o.topC:pick9(TOPS);botC=o.botC!=null?o.botC:pick9(BOTS)}
   const top=MC(topC),bot=MC(botC),hairM=MC(old?0xbdbdbd:0x1d1712);
   const root=new THREE.Group();root.scale.setScalar(sc);g.add(root);
   const legL=new THREE.Mesh(G.leg,bot),legR=new THREE.Mesh(G.leg,bot);legL.position.set(-.1,.88,0);legR.position.set(.1,.88,0);root.add(legL,legR);
@@ -3367,6 +3367,99 @@ function buildDot9(){
   for(let f=1;f<floors;f++)for(let k=0;k<(isTouch?2:4);k++){const p=person({sex:R9()<.55?'nu':'nam',kind:'hs',aodai:R9()<.3});const v=new THREE.Vector3((R9()-.5)*len*.85,0,1.2);g.localToWorld(v);
    p.position.set(v.x,f*3.5+.14,v.z);p.rotation.y=yw+(R9()-.5)*.6;p.visible=false;scene.add(p);CST.push(p)}});
  anim.push(()=>{const h=hVN(),sch=h>=6.5&&h<17.5;for(const p of CST){const dx=p.position.x-pos.x,dz=p.position.z-pos.z;p.visible=sch&&!inRoom&&(pos.y>40||dx*dx+dz*dz<8100)}});
+ /* ---- ĐỢT 11: 5 CẢNH XÍCH MÍCH HỌC SINH + BÁC BẢO VỆ ĐI CAN (minh hoạ, vui là chính; giờ học 6h30–17h30) ----
+    Mỗi 32 giây diễn một cảnh, lần lượt 5 cảnh, mọi máy thấy cùng lúc (theo đồng hồ). Cảnh: cãi nhau → xô đẩy → bác bảo vệ chạy tới can → hai bạn cúi đầu xin lỗi → đi về lớp. */
+ {const free=(x,z)=>{if(!hit(x,z))return[x,z];for(let r=1;r<9;r++)for(let a=0;a<8;a++){const nx=x+Math.cos(a*.785)*r,nz=z+Math.sin(a*.785)*r;if(!hit(nx,nz))return[nx,nz]}return[x,z]};
+  const mkP=o=>{const p=person(Object.assign({kind:'hs'},o));p.visible=false;scene.add(p);return{g:p,u:p.userData,lean:p}};
+  const mkB=()=>{const b=bikeRider();b.g.visible=false;scene.add(b.g);b.u.legL.rotation.x=-.15;b.u.legR.rotation.x=.15;return{g:b.g,u:b.u,bike:1,lean:b.g}};
+  const box1=(w,h,d,c)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),MC(c));m.visible=false;scene.add(m);return m};
+  // bác bảo vệ
+  const gp0=free(-3.6,17.2);
+  const gd=person({sex:'nam',kind:'adult',topC:0x7da2c8,botC:0x1f2a44,bag:false});gd.visible=false;scene.add(gd);const gu=gd.userData;
+  {const cap=new THREE.Mesh(new THREE.CylinderGeometry(.15,.17,.1,10),MC(0x1f2a44));cap.position.set(0,.9,0);gu.up.add(cap);const br=new THREE.Mesh(new THREE.BoxGeometry(.2,.02,.12),MC(0x1f2a44));br.position.set(0,.87,.15);gu.up.add(br);
+   const bt=new THREE.Mesh(new THREE.BoxGeometry(.42,.06,.26),MC(0x3a2a1a));bt.position.set(0,.05,0);gu.up.add(bt)}
+  const book=new THREE.Mesh(new THREE.BoxGeometry(.18,.02,.26),MC(0xf5f0e0));book.position.set(-.24,.2,.3);book.visible=false;gu.up.add(book);
+  const gtag=tagSprite('Bác bảo vệ',gp0[0],2.5,gp0[1],.42);gtag.visible=false;
+  gd.position.set(gp0[0],groundAt(gp0[0],gp0[1],1),gp0[1]);gd.rotation.y=Math.PI;
+  const GIDLE=['Em vào học à? Dựng xe cẩn thận nhé!','Trống đánh rồi, vào lớp đi các em!','Ai để quên mũ bảo hiểm không đấy?','Chiều nay trời mát nhỉ.'];
+  let gph=0,gCool=0,gSay=null;
+  // 5 cảnh
+  const SCN=[
+   {name:'Sân trường · giành sân bóng',desc:'Hai bạn nam cãi nhau chuyện ai được đá trước',x:24,z:-10,ang:0,A:{sex:'nam'},B:{sex:'nam'},W:[{sex:'nam'},{sex:'nam'}],ball:1,
+    L:[[.5,'A','Tao đá trước mà!'],[3,'B','Mày chơi ăn gian!'],[5.5,'A','Ra chỗ khác mà đá!'],[7.8,'B','Mày đẩy tao à?!'],[10,'W','Thôi đừng đánh nhau, thầy ra bây giờ!'],[14.5,'G','Thôi! Các em làm cái gì thế hả?'],[18,'G','Về lớp ngay, không bác báo thầy cô đấy!'],[21,'A','Dạ… cháu xin lỗi bác ạ.'],[22.5,'B','Cháu cũng xin lỗi ạ.']]},
+   {name:'Hành lang · mượn vở không trả',desc:'Hai bạn nữ giằng co cuốn vở',x:-22,z:2.5,ang:1.2,A:{sex:'nu'},B:{sex:'nu'},W:[{sex:'nu'}],book:1,
+    L:[[.5,'A','Trả vở cho tao!'],[3,'B','Tao chép chưa xong mà!'],[5.5,'A','Mày mượn bốn hôm rồi đấy!'],[8,'B','Buông ra, rách bây giờ!'],[10.5,'W','Hai bà thôi đi, mọi người nhìn kìa!'],[14.5,'G','Các em kia, có chuyện gì thế?'],[18,'G','Vở của ai thì trả người đó, rồi vào lớp!'],[21,'B','Dạ, cháu trả bạn ạ.'],[22.5,'A','Cháu cảm ơn bác.']]},
+   {name:'Cổng trường · hai xe va quệt nhau',desc:'Hai bạn đạp xe đâm quệt nhau ngay trước cổng',x:-14,z:15,ang:.5,bike:1,A:{},B:{},W:[{sex:'nam'}],
+    L:[[.5,'A','Đi đứng kiểu gì thế?!'],[3,'B','Mày phanh gấp chứ!'],[5.5,'A','Xước hết xe tao rồi!'],[8,'B','Xin lỗi chưa mà đã quát?!'],[10.5,'W','Thôi, dắt xe vào đi, muộn học rồi!'],[14.5,'G','Ê, sân cổng không phải đường đua đâu!'],[18,'G','Dắt xe vào nhà xe, đừng chắn cổng!'],[21,'A','Dạ, cháu xin lỗi ạ.'],[22.5,'B','Cháu dắt vào ngay ạ.']]},
+   {name:'Cổng phụ · chen hàng bánh mì',desc:'Hai bạn nam xô nhau ở xe bánh mì, rơi cả gói xôi',x:41.6,z:15.6,ang:0,A:{sex:'nam'},B:{sex:'nam'},W:[{sex:'nu'},{sex:'nam'}],xoi:1,
+    L:[[.5,'A','Ê, chen hàng à?'],[3,'B','Tao đứng đây từ nãy!'],[5.5,'A','Xếp hàng đi chứ!'],[8,'B','Á! Gói xôi của tao rơi rồi!'],[10.5,'W','Cho em hai ổ nhanh lên, sắp trống rồi!'],[14.5,'G','Chen lấn cái gì, xếp hàng cho đàng hoàng!'],[18,'G','Làm rơi thì mua đền bạn, rồi vào lớp!'],[21,'A','Dạ, cháu mua đền bạn ạ.'],[22.5,'B','Thôi, không sao đâu bác.']]},
+   {name:'Nhà xe · dắt nhầm xe',desc:'Hai bạn nam cãi nhau vì dắt nhầm xe, bác bảo vệ ghi sổ',x:54,z:12.5,ang:.8,A:{sex:'nam'},B:{sex:'nam'},W:[{sex:'nu'}],sổ:1,
+    L:[[.5,'A','Mày dắt nhầm xe tao rồi!'],[3,'B','Xe này của tao, có dán hình mà!'],[5.5,'A','Xe tao mới đổi chuông đấy!'],[8,'B','Mày có buông ra không?!'],[10.5,'W','Ơ, hình như bạn nhầm xe thật đấy…'],[14.5,'G','Dừng lại! Ai gây chuyện trước?'],[17,'G','Tên gì, lớp nào? Bác ghi sổ báo thầy chủ nhiệm.'],[20.5,'A','Dạ, cháu lớp mười hai A ạ.'],[22.5,'B','Dạ, cháu xin lỗi, nhìn nhầm xe ạ.']]}];
+  SCN.forEach(c=>{[c.x,c.z]=free(c.x,c.z);const e=[Math.sin(c.ang),Math.cos(c.ang)];c.e=e;c.n=[-e[1],e[0]];
+   c.pa=c.bike?mkB():mkP(Object.assign({},c.A,{aodai:false}));c.pb=c.bike?mkB():mkP(Object.assign({},c.B,{aodai:false}));c.ws=(c.W||[]).map(w=>mkP(w));
+   if(c.ball){c.item=new THREE.Mesh(new THREE.SphereGeometry(.16,10,8),MC(0xf2f2f2));c.item.visible=false;scene.add(c.item)}
+   if(c.book){c.item=box1(.22,.03,.3,0x2a62b8)}
+   if(c.xoi){c.item=box1(.2,.1,.14,0xf4d27a)}
+   const bx=gp0[0]-c.x,bz=gp0[1]-c.z,sg=(bx*c.n[0]+bz*c.n[1])>=0?1:-1;c.gpt=free(c.x+c.n[0]*2.4*sg,c.z+c.n[1]*2.4*sg);
+   c.dist=Math.hypot(c.gpt[0]-gp0[0],c.gpt[1]-gp0[1]);c.last=-1});
+  const sP=(q,x,z,face)=>{q.g.position.set(x,groundAt(x,z,1),z);if(face!=null)q.g.rotation.y=face};
+  const arm=(u,l,r)=>{u.armL.rotation.x=l;u.armR.rotation.x=r};
+  const say=(g,t)=>bubbleOn(g,t);
+  let curI=-1,toastI=-1;window.__scn=SCN;window.__guard=gd;
+  anim.push(()=>{
+   const h=hVN(),sch=h>=6.5&&h<17.5,now=Date.now()/1000,idx=Math.floor(now/32)%5,ts=now%32,pn=performance.now(),dtg=Math.min(.05,(pn-(window.__scLast||pn))/1000);window.__scLast=pn;
+   const sky=pos.y>40,dGate=Math.hypot(gd.position.x-pos.x,gd.position.z-pos.z);
+   // chọn cảnh đang diễn
+   SCN.forEach((c,i)=>{const on=sch&&i===idx&&ts<31&&!inRoom&&(sky||Math.hypot(c.x-pos.x,c.z-pos.z)<130);
+    const all=[c.pa,c.pb,...c.ws];all.forEach(q=>q.g.visible=on);if(c.item)c.item.visible=on&&(!c.xoi||ts>=8);
+    if(!on){c.last=-1;return}
+    if(c.last>ts)c.last=-1;
+    const cx=c.x,cz=c.z,e=c.e,n=c.n,A=c.pa,B=c.pb;
+    // khoảng cách giữa hai bạn theo thời gian
+    let gap;if(ts<2)gap=2.2-.7*ts/2;else if(ts<7)gap=1.5;else if(ts<14)gap=.85+.3*Math.abs(Math.sin(ts*5));else if(ts<16)gap=.85+1.15*(ts-14)/2;else if(ts<24)gap=2;else gap=2+(ts-24)*1.2;
+    const sh=ts<7?0:ts<14?.25:0;
+    const ax=cx-e[0]*(gap/2),az=cz-e[1]*(gap/2),bx=cx+e[0]*(gap/2)+e[0]*sh,bz=cz+e[1]*(gap/2)+e[1]*sh;
+    const fa=Math.atan2(e[0],e[1]),fb=fa+Math.PI;
+    if(c.bike){sP(A,ax,az,Math.PI/2+.2);sP(B,bx,bz,c.ang+.1);const bump=ts>=7&&ts<14?Math.sin(ts*9)*.08:0;A.lean.rotation.z=bump;B.lean.rotation.z=-bump}
+    else{sP(A,ax,az,ts<24?fa:fa+Math.PI+.3);sP(B,bx,bz,ts<24?fb:fb+.3);}
+    const U=[A.u,B.u];
+    if(ts<7){const sa=Math.floor(ts/2.2)%2===0;[[A.u,sa],[B.u,!sa]].forEach(([u,sp])=>{arm(u,sp?-.3:.15,sp?-1.25+Math.sin(ts*9)*.45:.1);u.up.rotation.x=sp?.1:0})}
+    else if(ts<14){const w=Math.sin(ts*6)*.25;arm(A.u,-1.45+w,-1.45-w);arm(B.u,-1.2-w,-1.2+w);A.u.up.rotation.x=.25;B.u.up.rotation.x=-.12;
+     if(c.ws[0])arm(c.ws[0].u,-2.6,-2.6)}
+    else if(ts<24){U.forEach(u=>{arm(u,.25,.25);u.up.rotation.x=.38});c.ws.forEach(q=>{arm(q.u,.1,.1)})}
+    else{U.forEach(u=>{u.up.rotation.x=0;const s=Math.sin(ts*7)*.5;u.legL.rotation.x=s;u.legR.rotation.x=-s;arm(u,-s*.7,s*.7)});
+     if(c.bike){A.g.position.x=ax;}}
+    if(ts<24&&!(ts>=7&&ts<14)){U.forEach(u=>{u.legL.rotation.x=0;u.legR.rotation.x=0})}
+    // người xem
+    c.ws.forEach((q,i)=>{const sg=i%2?-1:1,wx=cx+n[0]*2.9*sg+e[0]*(i*1.4),wz=cz+n[1]*2.9*sg+e[1]*(i*1.4);
+     sP(q,ts<24?wx:wx+(ts-24)*sg*.8*n[0],ts<24?wz:wz+(ts-24)*sg*.8*n[1],Math.atan2(cx-wx,cz-wz));if(ts>=24){const s=Math.sin(ts*7)*.5;q.u.legL.rotation.x=s;q.u.legR.rotation.x=-s}else{q.u.legL.rotation.x=q.u.legR.rotation.x=0;if(!(ts>=7&&ts<14))arm(q.u,.1,.1)}});
+    // đồ vật
+    if(c.ball)c.item.position.set(cx+n[0]*1.2,.16,cz+n[1]*1.2);
+    if(c.book){const k=ts<7?0:ts<14?Math.sin(ts*8)*.35:ts<24?1.2:1.2;c.item.position.set(cx+e[0]*k*(ts<14?1:-1)*0,1.0+ (ts<14?.1:0),cz);c.item.position.x=cx+e[0]*(ts<14?k*.5:0);c.item.position.z=cz+e[1]*(ts<14?k*.5:0);c.item.rotation.y=fa}
+    if(c.xoi){const fall=Math.min(1,(ts-8)/.7);c.item.position.set(bx+n[0]*.4,Math.max(.06,1.2-1.14*fall*fall),bz+n[1]*.4)}
+    // lời thoại
+    c.L.forEach(([t0,w,tx])=>{if(c.last<t0&&t0<=ts){const q=w==='A'?A:w==='B'?B:w==='W'?c.ws[0]||B:null;if(q)say(q.g,tx);else say(gd,tx)}});
+    c.last=ts;
+   });
+   // bác bảo vệ
+   const c=SCN[idx],act=sch&&c&&ts<31;let tx,tz,face=null,run=false;
+   if(act&&ts>=Math.max(0,12-c.dist/4.5)&&ts<26){tx=c.gpt[0];tz=c.gpt[1]}else{tx=gp0[0];tz=gp0[1]}
+   const dx=tx-gd.position.x,dz=tz-gd.position.z,dd=Math.hypot(dx,dz);
+   if(dd>.4){const sp=Math.min(dd,(act?4.6:3)*dtg);gd.position.x+=dx/dd*sp;gd.position.z+=dz/dd*sp;gd.position.y=groundAt(gd.position.x,gd.position.z,1);gd.rotation.y=Math.atan2(dx,dz);gph+=dtg*10;const s=Math.sin(gph)*(act?.8:.5);gu.legL.rotation.x=s;gu.legR.rotation.x=-s;arm(gu,-s*.8,s*.8)}
+   else{gu.legL.rotation.x=gu.legR.rotation.x=0;
+    if(act&&ts>=14&&ts<26&&c){gd.rotation.y=Math.atan2(c.x-gd.position.x,c.z-gd.position.z);const sw=Math.sin(ts*4)*.15;
+     if(c.sổ&&ts>=16.5){book.visible=true;arm(gu,-1.2,-.9+sw)}else{book.visible=false;arm(gu,.1,-1.3+sw)}}
+    else{book.visible=false;arm(gu,.05,.05);if(!act&&gd.position.distanceTo(new THREE.Vector3(gp0[0],gd.position.y,gp0[1]))<1)gd.rotation.y=Math.PI}}
+   if(!(act&&c&&c.sổ&&ts>=16.5))book.visible=false;
+   gd.visible=!inRoom&&(sky||dGate<110);gtag.visible=gd.visible;gtag.position.set(gd.position.x,2.5,gd.position.z);
+   // chào hỏi khi mình lại gần
+   gCool-=dtg;if(gd.visible&&!act&&dd<.5&&dGate<9&&gCool<=0){gCool=28;say(gd,GIDLE[Math.floor(Math.random()*GIDLE.length)])}
+   // báo khi cảnh mới bắt đầu
+   if(act&&ts<4&&toastI!==idx&&!inRoom&&Math.hypot(c.x-pos.x,c.z-pos.z)<90){toastI=idx;toast('Có xích mích: '+c.name+' — '+c.desc+'. Bác bảo vệ đang chạy tới can. (minh hoạ cho vui)')}
+   if(ts>8)toastI=toastI===idx?idx:toastI;
+  });
+ }
+
  /* ---- chạy ---- */
  let tick=0;
  anim.push((dt,t)=>{
