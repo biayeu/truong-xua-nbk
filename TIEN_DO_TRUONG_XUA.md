@@ -148,3 +148,20 @@ Sếp yêu cầu giao diện KHÁC trang THPT Vĩnh Bảo (thpt-vinh-bao.tranngo
 - Cafe Mori chuyển ra ngõ Cầu đá mới (bỏ chỗ cũ ở đường Trung Tân z 160): bên ngõ, gần x -62.
 - Dãy quán net bên phải trường (nhà dân ngày xưa): x 93–127, z 6–15,6, 3 quán "Net Hoàng Long", "Net 24h Vui Vẻ", "Net Cầu Vồng" xen 3 nhà dân. "Đi tới… Dãy quán net".
 - Quán net đầu cầu cũ: đặt ở bờ bắc sông, x ≈ -18, z ≈ 85. CÒN HỎI SẾP: "cầu Lý Học cũ" là cầu nào (trong trang mới có cầu Lạng Am trước cổng và cầu Nam Am); sếp chỉ chỗ thì em dời.
+# ĐỢT 10 (15/11/2026 chiều) – đọc kèm TIEN_DO_TRUONG_XUA.md, TIEN_DO_DOT8.md, TIEN_DO_DOT9.md
+
+## Sửa lỗi
+- Quán net bờ bắc (x 275, z 79) không vào được: có khe hở 0,3 m giữa vỉa hè và nền quán (vùng đi được không nối nhau). Đã nối (vùng x 266–284, z 63–79,6). Đã thử đi xe vào được.
+- Xuống xe để ngồi quán (bàn ghế) thì ra quán MẤT xe: nay nhớ trạng thái, đứng dậy đi ra khỏi quán là tự "Lên xe". Nếu sếp tự bấm "Xuống xe" trước thì không tự lên lại.
+- Điện thoại không nghe nhạc: iPhone tắt tiếng Web Audio khi gạt nút im lặng; thêm thẻ audio rỗng chạy ngầm sau lần chạm đầu tiên, tự mở lại âm thanh khi quay lại trang. CHƯA thử trên điện thoại thật.
+
+## Âm thanh sống (tự tạo bằng máy, không dùng bản ghi có bản quyền; em không tải được file từ mạng về)
+- Ngoài đường: tiếng xe máy chạy qua, còi.
+- Sân trường: học sinh nói chuyện, hò hét; đông vào giờ học (T2–T7 7:00–11:15, 13:30–17:45), vắng chủ nhật/ngoài giờ.
+- Quán bia: tiếng nhiều người, "dô" đồng thanh, chạm ly, nhạc sàn dập.
+- Quán cà phê/bánh mì: nói chuyện nhỏ, thìa chạm cốc, nhạc lofi.
+- Quán net: gõ phím, hò hét gọi nhau, nhạc game 8-bit.
+- Câu nói tiếng Việt (nạp tiền, dô, gọi món…) đọc bằng giọng tiếng Việt có sẵn trong trình duyệt; máy nào không có giọng Việt thì chỉ nghe tiếng nền.
+- Ra gần quán thì nghe nhỏ dần, vào trong quán nghe rõ, nhạc nền nhẹ tự hạ.
+- Muốn tiếng THẬT: bỏ file duong.mp3, san.mp3, bia.mp3, cafe.mp3, net.mp3 vào thư mục public/am/ (tự dùng, tiếng máy tạo giảm còn 12%). Cần file tự thu hoặc miễn phí bản quyền.
+- Hàm thử nghiệm: window.__zone(), window.__dbg(), window.__setRide(v).
