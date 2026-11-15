@@ -3534,8 +3534,8 @@ function buildDot8(){
 function buildDot9(){
  const R9=rng(9191),pick9=a=>a[Math.floor(R9()*a.length)];
  const mc={};const MC=c=>mc[c]||(mc[c]=M(c));
- const G={leg:new THREE.CylinderGeometry(.075,.055,.86,6).translate(0,-.43,0),arm:new THREE.CylinderGeometry(.05,.04,.58,6).translate(0,-.29,0),torso:new THREE.BoxGeometry(.38,.56,.22),head:new THREE.SphereGeometry(.115,10,8),
-  hair:new THREE.SphereGeometry(.125,10,6,0,Math.PI*2,0,Math.PI*.5),bag:new THREE.BoxGeometry(.3,.4,.15),flap:new THREE.BoxGeometry(.3,.62,.02),non:new THREE.ConeGeometry(.3,.18,12),shoe:new THREE.BoxGeometry(.11,.07,.26),
+ const G={leg:new THREE.CylinderGeometry(.075,.055,.86,6).translate(0,-.43,0),arm:new THREE.CylinderGeometry(.05,.04,.58,6).translate(0,-.29,0),torso:new THREE.BoxGeometry(.38,.56,.22),head:new THREE.SphereGeometry(.115,7,5),
+  hair:new THREE.SphereGeometry(.125,7,4,0,Math.PI*2,0,Math.PI*.5),bag:new THREE.BoxGeometry(.3,.4,.15),flap:new THREE.BoxGeometry(.3,.62,.02),non:new THREE.ConeGeometry(.3,.18,12),shoe:new THREE.BoxGeometry(.11,.07,.26),
   helm:new THREE.SphereGeometry(.14,10,8,0,Math.PI*2,0,Math.PI*.62),tail:new THREE.CylinderGeometry(.03,.015,.26,5),wheel:new THREE.TorusGeometry(.33,.03,5,14),mwheel:new THREE.TorusGeometry(.3,.07,6,14)};
  const SKIN=[0xe8bf9a,0xd9a77d,0xc48d63],TOPS=[0xffffff,0xf2f2f2,0x2a62b8,0xc62828,0x2f9e5a,0xf1c40f,0x8e44ad,0xe67e22,0x37474f,0xd81b60,0x90a4ae,0x6b4a33],BOTS=[0x1f2a44,0x2d2d2d,0x5d4037,0x37474f,0x283593,0xbdbdbd];
  const hVN=()=>new Date(Date.now()+7*36e5).getUTCHours()+new Date(Date.now()+7*36e5).getUTCMinutes()/60;
@@ -3547,16 +3547,16 @@ function buildDot9(){
   const top=MC(topC),bot=MC(botC),hairM=MC(old?0xbdbdbd:0x1d1712);
   const root=new THREE.Group();root.scale.setScalar(sc);g.add(root);
   const legL=new THREE.Mesh(G.leg,bot),legR=new THREE.Mesh(G.leg,bot);legL.position.set(-.1,.88,0);legR.position.set(.1,.88,0);root.add(legL,legR);
-  [legL,legR].forEach(l=>{const s=new THREE.Mesh(G.shoe,MC(hs?0xffffff:pick9([0x222222,0xffffff,0x5d4037,0xd9d2c4])));s.position.set(0,-.84,.05);l.add(s)});
+  [].forEach(l=>{const s=new THREE.Mesh(G.shoe,MC(hs?0xffffff:pick9([0x222222,0xffffff,0x5d4037,0xd9d2c4])));s.position.set(0,-.84,.05);l.add(s)});
   const up=new THREE.Group();up.position.y=.88;root.add(up);if(old)up.rotation.x=.2;
   const tor=new THREE.Mesh(G.torso,top);tor.position.y=.3;up.add(tor);
   if(winter&&hs){const z=new THREE.Mesh(new THREE.BoxGeometry(.04,.5,.02),MC(0xffffff));z.position.set(0,.3,.115);up.add(z)}
   if((o.aodai&&nu)||(hs&&nu&&!winter&&o.aodai)){const f=new THREE.Mesh(G.flap,top);f.position.set(0,-.25,.12);up.add(f);const b=f.clone();b.position.z=-.12;up.add(b)}
   const armL=new THREE.Mesh(G.arm,top),armR=new THREE.Mesh(G.arm,top);armL.position.set(-.24,.55,0);armR.position.set(.24,.55,0);up.add(armL,armR);
   const head=new THREE.Mesh(G.head,skin);head.position.y=.74;up.add(head);
-  const eye=new THREE.Mesh(new THREE.BoxGeometry(.1,.02,.02),MC(0x1a1a1a));eye.position.set(0,.755,.1);up.add(eye);
+  
   const hr=new THREE.Mesh(G.hair,hairM);hr.position.set(0,.755,-.012);hr.rotation.x=-.4;hr.scale.set(1,nu?1.2:1.05,1.05);up.add(hr);
-  if(nu&&!old){const t=new THREE.Mesh(G.tail,hairM);t.position.set(0,.64,-.13);t.rotation.x=.25;up.add(t)}
+  if(false){const t=new THREE.Mesh(G.tail,hairM);t.position.set(0,.64,-.13);t.rotation.x=.25;up.add(t)}
   if(o.helmet){const h=new THREE.Mesh(G.helm,MC(pick9([0x1d1d1d,0xc62828,0xffffff,0x2a62b8,0xf1c40f])));h.position.set(0,.77,0);up.add(h)}
   else if(o.non){const n=new THREE.Mesh(G.non,MC(0xe6d39a));n.position.y=.92;up.add(n)}
   if(hs&&o.bag!==false){const b=new THREE.Mesh(G.bag,MC(pick9([0x1f4e9a,0x8e2a2a,0x2d2d2d,0x2f6f62,0xd81b60,0xf1c40f])));b.position.set(0,.32,-.2);up.add(b)}
@@ -4028,7 +4028,7 @@ function buildLua(){
   bn.position.set(FX,7.4,-14.4);grp.add(bn);[-5.6,5.6].forEach(dx=>cyl(.08,.1,8,MC(0x8a7a3e),FX+dx,4,-14.4,grp,6))}
  /* ===== người quanh lửa ===== */
  const SK=[0xe8bf9a,0xd9a77d,0xc48d63],TOP=[0xffffff,0x2a62b8,0xc62828,0x2f9e5a,0xf1c40f,0x8e44ad,0xe67e22,0x37474f,0xd81b60,0x90a4ae],BOT=[0x1f2a44,0x2d2d2d,0x5d4037,0x283593];
- const GL={leg:new THREE.CylinderGeometry(.075,.055,.86,6).translate(0,-.43,0),arm:new THREE.CylinderGeometry(.05,.04,.58,6).translate(0,-.29,0),tor:new THREE.BoxGeometry(.38,.56,.22),head:new THREE.SphereGeometry(.115,10,8),hair:new THREE.SphereGeometry(.125,10,6,0,Math.PI*2,0,Math.PI*.5)};
+ const GL={leg:new THREE.CylinderGeometry(.075,.055,.86,6).translate(0,-.43,0),arm:new THREE.CylinderGeometry(.05,.04,.58,6).translate(0,-.29,0),tor:new THREE.BoxGeometry(.38,.56,.22),head:new THREE.SphereGeometry(.115,7,5),hair:new THREE.SphereGeometry(.125,7,4,0,Math.PI*2,0,Math.PI*.5)};
  function mkP(nu,top){const g=new THREE.Group(),root=new THREE.Group();root.scale.setScalar(nu?.96:1);g.add(root);
   const skin=MC(pk(SK)),tp=MC(top??pk(TOP)),bt=MC(pk(BOT)),hr=MC(0x1d1712);
   const legL=new THREE.Mesh(GL.leg,bt),legR=new THREE.Mesh(GL.leg,bt);legL.position.set(-.1,.88,0);legR.position.set(.1,.88,0);root.add(legL,legR);
