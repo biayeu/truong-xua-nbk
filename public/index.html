@@ -2044,13 +2044,33 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
  const lawn=MM(0x7da44f);[[150,1995],[150,2047],[185,1995],[185,2047]].forEach(([x,z])=>{flat(22,14,x,z,lawn,.03);mr('#7da44f',x-11,x+11,z-7,z+7);
   for(let i=0;i<4;i++){const t=new THREE.Group();t.position.set(x-8+i*5.3,0,z);scene.add(t);box(.25,2,.25,MM(0x5a3c28),0,1,0,t,false);const c=new THREE.Mesh(new THREE.SphereGeometry(1,8,6),MM(0x4d8a3c));c.position.y=2.4;c.scale.set(1,1.2,1);t.add(c)}});
  // tượng Trạng Trình bằng đá (Google Maps ghi "Tượng đài Nguyễn Bỉnh Khiêm"), quay mặt ra hồ (hướng Đông)
- {const [sx,sz]=TP.stat,g=new THREE.Group();g.position.set(sx,0,sz);g.rotation.y=-Math.PI/2;scene.add(g);const st=MM(0xb9b4ab,{roughness:.6});
-  box(9,.5,9,MM(0xa39d93),0,.25,0,g);box(7,.5,7,MM(0xa39d93),0,.75,0,g);box(3.6,2.6,3.6,MM(0x8f8a82),0,2.3,0,g);
-  const body=new THREE.Mesh(new THREE.CylinderGeometry(.75,1.1,3.2,14),st);body.position.y=5.2;g.add(body);
-  const hd=new THREE.Mesh(new THREE.SphereGeometry(.42,14,10),st);hd.position.y=7.1;g.add(hd);
-  const hat=new THREE.Mesh(new THREE.CylinderGeometry(.36,.42,.45,12),st);hat.position.y=7.5;g.add(hat);
-  box(1.2,.3,.6,st,0,5.9,.65,g,false);addRect(sx-4.5,sx+4.5,sz-4.5,sz+4.5,.5);addRect(sx-3.5,sx+3.5,sz-3.5,sz+3.5,1);solid2.push([sx-1.8,sx+1.8,sz-1.8,sz+1.8]);
-  nameTag('Tượng đài Trạng Trình','theo Google Maps',sx,10.5,sz,.9);mr('#9a948a',sx-4.5,sx+4.5,sz-4.5,sz+4.5)}
+ {const [sx,sz]=TP.stat,g=new THREE.Group();g.position.set(sx,0,sz);g.rotation.y=-Math.PI/2;scene.add(g);
+  const gran=ctex(256,256,(c,w,h)=>{c.fillStyle='#9d9a94';c.fillRect(0,0,w,h);for(let i=0;i<1800;i++){c.fillStyle=['#76736d','#b9b6b0','#5f5d59','#cfccc6'][i%4];c.globalAlpha=.55;c.fillRect(Math.random()*w,Math.random()*h,2,2)}c.globalAlpha=1});gran.wrapS=gran.wrapT=THREE.RepeatWrapping;
+  const gm=new THREE.MeshStandardMaterial({map:gran,roughness:.55,metalness:.05}),gm2=new THREE.MeshStandardMaterial({map:gran,color:0xcfcac2,roughness:.6});
+  const fine=new THREE.Group();g.add(fine);(window.__FINE=window.__FINE||[]).push([fine,sx,sz,110]);
+  box(14,.5,14,MM(0xa39d93),0,.25,0,g);box(11,.5,11,MM(0xb0aaa0),0,.75,0,g);box(8.5,.5,8.5,MM(0xbdb7ad),0,1.25,0,g);
+  box(5,2.2,5,gm2,0,2.6,0,g);box(5.4,.3,5.4,gm,0,3.85,0,g,false);{const _pl=new THREE.Mesh(new THREE.BoxGeometry(4.2,.12,.5),MM(0xd4a72c,{metalness:.5,roughness:.4}));_pl.position.set(0,3.0,2.52);fine.add(_pl)}
+  const Y0=4.0; // mặt bệ; tượng ngồi trên ngai, tổng cao khoảng 5,7 m
+  box(2.8,2.9,.55,gm,0,Y0+1.45,-.85,g);box(3.1,.35,.7,gm,0,Y0+3,-.85,g,false); // lưng ngai
+  box(2.6,.7,2.2,gm,0,Y0+.35,0,g);                                              // mặt ngai
+  [-.55,.55].forEach(x=>{box(.62,.55,1.5,gm,x,Y0+1.05,.7,g);box(.5,.8,.5,gm,x,Y0+.55,1.45,g)}); // đùi, cẳng chân
+  const rb=new THREE.Mesh(new THREE.CylinderGeometry(.85,1.3,2.0,16),gm);rb.position.set(0,Y0+1.75,-.15);g.add(rb);              // thân áo
+  const sh=new THREE.Mesh(new THREE.CylinderGeometry(.6,.85,.6,16),gm);sh.position.set(0,Y0+2.95,-.15);g.add(sh);
+  [-1,1].forEach(d=>{const a=box(.45,.45,1.4,gm,d*1.0,Y0+1.8,.55,g);a.rotation.x=-.5;const h=new THREE.Mesh(new THREE.SphereGeometry(.2,8,6),gm);h.position.set(d*1.0,Y0+1.3,1.2);g.add(h)});
+  const hd=new THREE.Mesh(new THREE.SphereGeometry(.46,16,12),gm);hd.position.set(0,Y0+3.6,-.1);g.add(hd);
+  const hat=new THREE.Mesh(new THREE.CylinderGeometry(.4,.46,.5,14),gm);hat.position.set(0,Y0+4.05,-.1);g.add(hat);
+  [-1,1].forEach(d=>box(.9,.07,.28,gm,d*.7,Y0+4.1,-.1,g,false)); // mũ cánh chuồn
+  const bd=new THREE.Mesh(new THREE.ConeGeometry(.22,.9,10),gm);bd.position.set(0,Y0+3.1,.3);bd.rotation.x=Math.PI;g.add(bd);  // râu
+  // hai phù điêu đá hai bên, mỗi bức dài ~20 m cao ~5 m (theo bài viết); hình khắc là MINH HOẠ
+  const fr=n=>{const t=ctex(1024,256,(c,w,h)=>{c.fillStyle='#a8a59f';c.fillRect(0,0,w,h);for(let i=0;i<14;i++){const x=40+i*70+(n?30:0);const hh=60+((i*37+n*11)%40);c.fillStyle='#8c8984';c.beginPath();c.arc(x,95,16,0,7);c.fill();c.fillRect(x-14,110,28,hh);c.fillStyle='#c7c4be';c.fillRect(x-2,110,5,hh);c.fillRect(x+16,100,8,70)}
+   c.strokeStyle='#7d7a75';c.lineWidth=6;c.strokeRect(6,6,w-12,h-12);for(let i=0;i<60;i++){c.fillStyle='#85827d';c.globalAlpha=.4;c.fillRect(Math.random()*w,Math.random()*h,3,3)}c.globalAlpha=1});t.wrapS=THREE.RepeatWrapping;return t};
+  [[1,-.32,0],[-1,.32,1]].forEach(([sgn,rot,n])=>{const t=fr(n),m=new THREE.MeshStandardMaterial({map:t,bumpMap:t,bumpScale:.8,roughness:.8});
+   const w=new THREE.Mesh(new THREE.BoxGeometry(20,5,.9),[MM(0x8f8c86),MM(0x8f8c86),MM(0x8f8c86),MM(0x8f8c86),m,MM(0x8f8c86)]);
+   w.position.set(sgn*15,2.5,-5.5);w.rotation.y=rot*-1;w.castShadow=true;g.add(w);
+   // chặn đi xuyên bức phù điêu: vài ô nhỏ dọc theo bức
+   for(let k=-4;k<=4;k++){const lx=sgn*15+Math.cos(-rot)*k*2.3,lz=-5.5+Math.sin(-rot)*k*-2.3*sgn;const wx=sx+lz*-1,wz=sz+lx*-1*-1;solid2.push([wx-1.6,wx+1.6,wz-1.6,wz+1.6])}});
+  addRect(sx-7,sx+7,sz-7,sz+7,.5);addRect(sx-5.5,sx+5.5,sz-5.5,sz+5.5,1);solid2.push([sx-2.8,sx+2.8,sz-2.8,sz+2.8]);
+  nameTag('Tượng đài Trạng Trình','đá granite, tượng ngồi · theo bài báo',sx,13,sz,.9);mr('#9a948a',sx-7,sx+7,sz-7,sz+7)}
  // hồ bán nguyệt (mép phẳng phía tây, cong về phía đông), sân tròn ở giữa mép hồ
  {const [lx,lz,lr]=TP.lake;const sh=new THREE.Shape();sh.absarc(0,0,lr,-Math.PI/2,Math.PI/2,false);sh.closePath();
   const lake=new THREE.Mesh(new THREE.ShapeGeometry(sh,40),new THREE.MeshStandardMaterial({color:0x2f6e5a,roughness:.15,metalness:.2}));lake.rotation.x=-Math.PI/2;lake.rotation.z=Math.PI;lake.position.set(lx,.05,lz);scene.add(lake);
@@ -2061,10 +2081,7 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
   MAPR.push(['lake',lx,lz,lr]);nameTag('Hồ bán nguyệt','',lx-20,3,lz,.8)}
  // kiến trúc đền: mái ngói đỏ hai tầng, cột gỗ son, bậc đá
  const red=MM(0x8f2a1e),tileM=MM(0x9c3b2a),col=MM(0x6e2a1c),stone=MM(0xe8dcc4),wood=MM(0x7a3b22),gold=MM(0xd4a72c,{metalness:.5,roughness:.4});
- function roof(par,w,d,h,y,two){[0,1].slice(0,two?2:1).forEach(k=>{const W=w-k*w*.3,D=d-k*d*.35,H=h*(k?.8:1),Y=y+k*h*.95;
-  const s=new THREE.Shape();s.moveTo(-D/2-.9,0);s.lineTo(D/2+.9,0);s.lineTo(0,H);s.closePath();
-  const m=new THREE.Mesh(new THREE.ExtrudeGeometry(s,{depth:W+1.6,bevelEnabled:false}),tileM);m.rotation.y=Math.PI/2;m.position.set(-(W+1.6)/2,Y,0);m.castShadow=true;par.add(m);
-  box(W+2,.25,.3,red,0,Y+H,0,par,false);[-1,1].forEach(sd=>{const c=box(.35,.35,1.1,red,sd*(W/2+.9),Y+.4,0,par,false);c.rotation.x=-.5})})}
+ function roof(par,w,d,h,y,two){const g=new THREE.Group();g.rotation.y=Math.PI/2;par.add(g);curvedRoof(g,w+.6,d,h*1.0,y,{dao:1});if(two)curvedRoof(g,w*.6,d*.6,h*.7,y+h*.9,{})}
  // nhà kiểu đền: w theo trục x (đông–tây), d theo z; mở mặt trước (phía −x = đông) nếu open
  function hallB(cx,cz,w,d,h,open,label,sub){const g=new THREE.Group();g.position.set(cx,0,cz);scene.add(g);
   box(w+1,.4,d+1,stone,0,.2,0,g);addRect(cx-w/2-.5,cx+w/2+.5,cz-d/2-.5,cz+d/2+.5,.4);
@@ -2074,8 +2091,97 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
   solid2.push([cx+w/2-.6,cx+w/2+.1,cz-d/2,cz+d/2],[cx-w/2,cx+w/2,cz-d/2-.1,cz-d/2+.5],[cx-w/2,cx+w/2,cz+d/2-.5,cz+d/2+.1]);
   if(!open){box(.25,h,d-.4,wood,-w/2+.3,.4+h/2,0,g);solid2.push([cx-w/2-.1,cx-w/2+.6,cz-d/2,cz+d/2])}
   roof(g,w,d,2.8,h+.4,w>12);if(label)nameTag(label,sub||'',cx,h+6.5,cz,.85);mr('#9c3b2a',cx-w/2,cx+w/2,cz-d/2,cz+d/2);return g}
+ 
+ /* ===== ĐỢT 12: ĐỀN ĐẸP HƠN (mái cong đao, cột gỗ lim, bệ đá, hoành phi) — hình dáng theo mô tả bài báo; màu và chi tiết nhỏ là ĐOÁN ===== */
+ const FINE=(window.__FINE=window.__FINE||[]);
+ const roofT=ctex(128,128,(c,w,h)=>{c.fillStyle='#7d3a28';c.fillRect(0,0,w,h);for(let y=0;y<h;y+=8){c.fillStyle=y%16?'#8b4330':'#6d3222';c.fillRect(0,y,w,5);for(let x=(y%16?0:6);x<w;x+=12){c.fillStyle='rgba(30,50,30,.28)';c.fillRect(x,y,6,5)}}});roofT.wrapS=roofT.wrapT=THREE.RepeatWrapping;roofT.repeat.set(.7,.7);
+ const roofM=new THREE.MeshStandardMaterial({map:roofT,roughness:.9}),lac=MM(0x4a2216),plaster=MM(0xe3d0a0),goldM=MM(0xd4a72c,{metalness:.5,roughness:.4}),tileF=ctex(128,128,(c,w,h)=>{c.fillStyle='#a8573a';c.fillRect(0,0,w,h);c.strokeStyle='rgba(60,30,20,.5)';c.lineWidth=3;c.strokeRect(0,0,w,h)});tileF.wrapS=tileF.wrapT=THREE.RepeatWrapping;
+ const floorM=new THREE.MeshStandardMaterial({map:tileF,roughness:.85});
+ // mái cong: sống nóc dọc theo trục Z của nhóm, mái xuôi hai bên theo X, đầu đao cong vút
+ function curvedRoof(par,len,span,rise,y,o={}){const S=span/2+(o.ov!=null?o.ov:.9),N=16,top=[];
+  for(let i=0;i<=2*N;i++){const t=(i-N)/N,u=Math.abs(t);top.push([t*S,rise*(1-Math.pow(u,1.5))+(u>.8?.5*Math.pow((u-.8)/.2,2):0)])}
+  const sh=new THREE.Shape();sh.moveTo(top[0][0],top[0][1]);top.forEach(p=>sh.lineTo(p[0],p[1]));for(let i=top.length-1;i>=0;i--)sh.lineTo(top[i][0],top[i][1]-.28);
+  const geo=new THREE.ExtrudeGeometry(sh,{depth:len,bevelEnabled:false});geo.translate(0,0,-len/2);
+  const m=new THREE.Mesh(geo,roofM);m.position.y=y;m.castShadow=true;par.add(m);
+  box(.4,.38,len+.5,MM(0x6d2a1c),0,y+rise+.1,0,par,false);
+  [-1,1].forEach(sd=>{const k=box(.34,1.0,.34,MM(0x6d2a1c),0,y+rise+.55,sd*(len/2+.15),par,false);k.rotation.x=sd*.5;
+   if(o.dao)[-1,1].forEach(sx=>{const c=new THREE.Mesh(new THREE.ConeGeometry(.16,1.3,6),MM(0x6d2a1c));c.position.set(sx*(S-.25),y+top[0][1]+.55,sd*(len/2-.1));c.rotation.z=-sx*.9;c.rotation.x=sd*.35;par.add(c)})});
+  if(o.moon){const r=new THREE.Mesh(new THREE.TorusGeometry(.5,.07,6,16),goldM);r.position.set(0,y+rise+.9,0);r.rotation.y=Math.PI/2;par.add(r);[-1,1].forEach(sd=>box(.2,.3,.8,goldM,0,y+rise+.55,sd*.9,par,false))}
+  if(o.gable){const Sw=span/2,gs=new THREE.Shape();gs.moveTo(-Sw,0);top.filter(p=>Math.abs(p[0])<=Sw).forEach(p=>gs.lineTo(p[0],p[1]-.3));gs.lineTo(Sw,0);const gg=new THREE.ExtrudeGeometry(gs,{depth:.28,bevelEnabled:false});[-1,1].forEach(sd=>{const gm=new THREE.Mesh(gg,plaster);gm.position.set(0,y,sd>0?len/2-.45:-len/2+.17);par.add(gm)})}
+  return m}
+ // cột gỗ lim trên đá tảng
+ const colA=(par,x,z,h=3.6,fine)=>{const b=new THREE.Mesh(new THREE.CylinderGeometry(.34,.38,.28,10),MM(0xbdb2a0));b.position.set(x,.14,z);par.add(b);const c=new THREE.Mesh(new THREE.CylinderGeometry(.21,.25,h,10),lac);c.position.set(x,.28+h/2,z);c.castShadow=true;par.add(c);
+  const dd=box(.6,.22,.6,MM(0x35160d),x,.28+h+.1,z,fine||par,false)};
+ // bảng chữ (hoành phi, đại tự): nền sơn son, chữ vàng
+ const board=(par,text,w,h,x,y,z,ry,fs=52)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:ctex(Math.round(w*120),Math.round(h*120),(c,ww,hh)=>{c.fillStyle='#6f1a10';c.fillRect(0,0,ww,hh);c.strokeStyle='#e0b23a';c.lineWidth=8;c.strokeRect(6,6,ww-12,hh-12);c.fillStyle='#f0c24a';c.font='700 '+fs+'px "Be Vietnam Pro", sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(text,ww/2,hh/2+2)}),roughness:.6}));m.position.set(x,y,z);m.rotation.y=ry;par.add(m);return m};
+ const couplet=(par,x,y,z,ry,h)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(.55,h),new THREE.MeshStandardMaterial({map:ctex(64,Math.round(h*100),(c,w,hh)=>{c.fillStyle='#1d120d';c.fillRect(0,0,w,hh);c.fillStyle='#d8aa3a';for(let i=0;i<Math.floor(hh/26);i++){const r=(i*37)%5;c.fillRect(14+(r%2)*4,8+i*26,30-r*3,4);c.fillRect(20+(r%3)*5,14+i*26,4,10)}}),roughness:.5}));m.position.set(x,y,z);m.rotation.y=ry;par.add(m)};
+ // đền chính kiểu chữ "Đinh": tiền tế 3 gian 2 chái (ngang) + hậu cung 2 gian (đâm về phía sau); mặt đền quay về hướng Đông (−x)
+ function templeMain(mx,mz){const g=new THREE.Group();g.position.set(mx,0,mz);scene.add(g);const fine=new THREE.Group();g.add(fine);FINE.push([fine,mx,mz,95]);
+  const plat=(x0,x1,z0,z1,h,mat)=>{box(x1-x0,h,z1-z0,mat||stone,(x0+x1)/2,h/2,(z0+z1)/2,g);addRect(mx+x0,mx+x1,mz+z0,mz+z1,h)};
+  plat(-11.4,-10.2,-6,6,.15);plat(-10.6,-9.4,-7.5,7.5,.3);plat(-10,11,-10,10,.45);
+  box(11.4,.02,18.4,floorM,-4.4,.465,0,g,false);box(8.2,.02,7.2,floorM,5.5,.465,0,g,false);
+  const zs=[-8.7,-6.3,-2.1,2.1,6.3,8.7],xs=[-8.5,-3.6,1.3];
+  zs.forEach(z=>xs.forEach(x=>{if(x===-3.6&&Math.abs(z)<8)return;colA(g,x,z,3.4,fine)}));
+  zs.slice(1,-1).forEach(z=>colA(g,-3.6,z,3.4,fine));
+  // tường hồi hai bên và tường ngăn tiền tế – hậu cung (có cửa giữa)
+  [-9.2,9.2].forEach(z=>{box(11.4,3.8,.4,plaster,-4.4,2.35,z,g);solid2.push([mx-10,mx+1.6,mz+z-.3,mz+z+.3]);[-6,-2].forEach(x=>box(1,1.4,.1,lac,x,2.6,z>0?z-.25:z+.25,g,false))});
+  [[-1,-5.5,-1.5],[1,1.5,5.5]].forEach(([_,a,b])=>{box(.4,3.8,b-a,plaster,1.6,2.35,(a+b)/2,g);solid2.push([mx+1.4,mx+1.8,mz+a,mz+b])});
+  box(.4,1.1,3,plaster,1.6,4.35,0,g);
+  [-1,1].forEach(sd=>{const d=box(.1,2.6,1.4,lac,1.6,1.75,sd*1.8,g,false);d.rotation.y=sd*1.1}); // cánh cửa gỗ mở
+  // hậu cung
+  box(.45,3.8,7.6,plaster,10.3,2.35,0,g);solid2.push([mx+10,mx+10.6,mz-3.9,mz+3.9]);
+  [-3.7,3.7].forEach(z=>{box(8.6,3.8,.4,plaster,5.9,2.35,z,g);solid2.push([mx+1.6,mx+10.4,mz+z-.3,mz+z+.3])});
+  // mái
+  const rg1=new THREE.Group();rg1.position.set(-4,0,0);g.add(rg1);curvedRoof(rg1,20,10.6,3.0,4.1,{dao:1,moon:1,gable:1,ov:1.6});
+  const rg2=new THREE.Group();rg2.position.set(5.9,0,0);rg2.rotation.y=Math.PI/2;g.add(rg2);curvedRoof(rg2,10.8,7.6,2.6,3.9,{dao:1,gable:1,ov:1.1});
+  // hoành phi, đại tự, câu đối (nội dung câu đối là minh hoạ)
+  board(fine,'AN NAM LÝ HỌC',4.6,1.1,-8.9,3.9,0,-Math.PI/2,50);board(fine,'TRẠNG TRÌNH',2.6,.8,-8.9,3.9,-6.3,-Math.PI/2,40);board(fine,'DANH NHÂN',2.6,.8,-8.9,3.9,6.3,-Math.PI/2,40);
+  [-2.1,2.1].forEach(z=>couplet(fine,-8.78,2.2,z,-Math.PI/2,2.8));[-6.3,6.3].forEach(z=>couplet(fine,-8.78,2.2,z,-Math.PI/2,2.4));
+  // đèn lồng đỏ dọc hiên
+  for(let i=0;i<6;i++){const l=new THREE.Mesh(new THREE.SphereGeometry(.22,8,6),new THREE.MeshStandardMaterial({color:0xd32f2f,emissive:0x8a1b10,emissiveIntensity:.7}));l.scale.y=1.2;l.position.set(-9.4,3.2,zs[i]);fine.add(l)}
+  // sập đá, bát hương lớn đặt giữa tiền tế
+  box(2.4,.5,1.3,MM(0xcfc7b4),-3.6,.7,0,g);const bh=new THREE.Mesh(new THREE.CylinderGeometry(.34,.26,.45,12),MM(0x6b4a24,{metalness:.5}));bh.position.set(-3.6,1.15,0);g.add(bh);
+  addRect(mx-4.8,mx-2.4,mz-.65,mz+.65,.5);
+  return g}
+ // tam quan (nghi môn): cổng giữa mái hai tầng, hai cổng phụ, trụ lớn; hướng ra Đông
+ function triGate(gx,gz){const g=new THREE.Group();g.position.set(gx,0,gz);scene.add(g);const fine=new THREE.Group();g.add(fine);FINE.push([fine,gx,gz,80]);
+  box(5,.4,17.5,stone,0,.2,0,g);addRect(gx-2.5,gx+2.5,gz-8.75,gz+8.75,.4);
+  const P=(z,w,h)=>{box(w,h,1.4,MM(0xcdb88f),0,h/2+.4,z,g);box(w+.3,.25,1.7,MM(0x8a7452),0,h+.5,z,g,false);solid2.push([gx-.8,gx+.8,gz+z-w/2,gz+z+w/2])};
+  [-8,-5,-3.2,3.2,5,8].forEach((z,i)=>P(z,i%5===0?.9:.8,i%5===0?4:5.2));
+  [-4.1,4.1].forEach(z=>{box(.5,3.2,1.2,MM(0xd9c79d),0,2,z,g);solid2.push([gx-.5,gx+.5,gz+z-1.4,gz+z+1.4])});
+  box(1,.35,6.4,MM(0x35160d),0,5.2,0,g);
+  const r1=new THREE.Group();r1.position.set(0,0,0);g.add(r1);curvedRoof(r1,7,4.6,1.5,5.6,{dao:1,ov:.8});const r2=new THREE.Group();g.add(r2);curvedRoof(r2,4.4,3.2,1.1,7.2,{dao:1,moon:1,ov:.6});
+  [-5.4,5.4].forEach(z=>{const r=new THREE.Group();r.position.set(0,0,z);g.add(r);curvedRoof(r,4.6,3.8,1.2,4.4,{dao:1,ov:.7})});
+  board(fine,'NGHI MÔN',2.4,.7,2.1,4.6,0,-Math.PI/2,40);
+  [-9.5,9.5].forEach(z=>{box(.7,5.4,.7,MM(0xcdb88f),-2.4,2.7,z,g);const lm=new THREE.Mesh(new THREE.SphereGeometry(.35,8,6),new THREE.MeshStandardMaterial({color:0xfff0b0,emissive:0xb89a30,emissiveIntensity:.6}));lm.position.set(-2.4,5.7,z);fine.add(lm);solid2.push([gx-3,gx-1.8,gz+z-.5,gz+z+.5])});
+  return g}
+ // Am Bạch Vân: nhà chữ "nhất" 3 gian, mái tranh (theo bài báo; màu sắc đoán)
+ function amBV(ax,az){const g=new THREE.Group();g.position.set(ax,0,az);scene.add(g);const fine=new THREE.Group();g.add(fine);FINE.push([fine,ax,az,70]);
+  box(8.4,.45,6.4,MM(0xb8a688),0,.22,0,g);addRect(ax-4.2,ax+4.2,az-3.2,az+3.2,.45);
+  [-3.6,-1.2,1.2,3.6].forEach(x=>[-2.4,0,2.4].forEach(z=>colA(g,x,z,2.5,fine)));
+  box(8,2.7,.3,MM(0xcfb88a),0,1.8,2.9,g);box(.3,2.7,5.8,MM(0xcfb88a),-3.9,1.8,0,g);box(.3,2.7,5.8,MM(0xcfb88a),3.9,1.8,0,g);solid2.push([ax-4,ax+4,az+2.7,az+3.1],[ax-4.1,ax-3.7,az-3,az+3],[ax+3.7,ax+4.1,az-3,az+3]);
+  const th=ctex(128,128,(c,w,h)=>{c.fillStyle='#a98a4e';c.fillRect(0,0,w,h);for(let i=0;i<900;i++){c.fillStyle=['#8c6f3a','#c2a265','#7a5e2e'][i%3];c.fillRect(Math.random()*w,Math.random()*h,2,14)}});th.wrapS=th.wrapT=THREE.RepeatWrapping;th.repeat.set(.4,.4);
+  const tg=new THREE.Shape();tg.moveTo(-4.2,0);tg.quadraticCurveTo(-1.5,1.4,0,2.6);tg.quadraticCurveTo(1.5,1.4,4.2,0);tg.lineTo(4.2,-.45);tg.quadraticCurveTo(1.5,.9,0,2.1);tg.quadraticCurveTo(-1.5,.9,-4.2,-.45);tg.closePath();
+  const tm=new THREE.Mesh(new THREE.ExtrudeGeometry(tg,{depth:9.4,bevelEnabled:false}),new THREE.MeshStandardMaterial({map:th,roughness:1}));tm.geometry.translate(0,0,-4.7);tm.rotation.y=Math.PI/2;tm.position.y=3.5;tm.castShadow=true;g.add(tm);
+  board(fine,'AM BẠCH VÂN',2.6,.7,0,3.1,3.1,0,38);return g}
+ // đền thờ thân phụ, thân mẫu kiểu chữ "công": ống muống, tiền tế, hậu cung, hai toà giải vũ, cổng Nam–Bắc (mặt chính quay về phía +x, đường làng)
+ function songThan(tx,tz){const g=new THREE.Group();g.position.set(tx,0,tz);scene.add(g);const fine=new THREE.Group();g.add(fine);FINE.push([fine,tx,tz,85]);
+  const plat=(x0,x1,z0,z1,h)=>{box(x1-x0,h,z1-z0,stone,(x0+x1)/2,h/2,(z0+z1)/2,g);addRect(tx+x0,tx+x1,tz+z0,tz+z1,h)};
+  plat(-10,18,-12,12,.3);
+  const hall=(x0,x1,z0,z1,h,ridgeX,rs,gable,name)=>{const w=x1-x0,d=z1-z0,cx=(x0+x1)/2,cz=(z0+z1)/2;box(w,.15,d,floorM,cx,.37,cz,g,false);
+   [x0+.3,x1-.3].forEach(x=>[z0+.3,cz,z1-.3].forEach(z=>colA(g,x,z,h,fine)));
+   box(w,h,.3,plaster,cx,h/2+.3,z0+.1,g);box(w,h,.3,plaster,cx,h/2+.3,z1-.1,g);solid2.push([tx+x0,tx+x1,tz+z0-.1,tz+z0+.3],[tx+x0,tx+x1,tz+z1-.3,tz+z1+.1]);
+   const r=new THREE.Group();r.position.set(cx,0,cz);if(ridgeX)r.rotation.y=Math.PI/2;g.add(r);curvedRoof(r,ridgeX?w+.8:d+.8,ridgeX?d:w,rs,h+.4,{dao:1,gable:gable,ov:.9});if(name)board(fine,name,2.4,.6,x1+.1,h-.3,cz,Math.PI/2,32)};
+  hall(11,16,-5,5,3.1,true,1.6,0,'');             // ống muống (cổng nhà cầu phía trước)
+  hall(1.5,8.5,-8,8,3.6,false,2.2,1,'ĐỀN THỜ SONG THÂN'); // tiền tế
+  hall(-8,-1,-4.5,4.5,3.6,true,2.0,1,'');           // hậu cung
+  [-1,1].forEach(sd=>hall(2,12,sd*10-1.8,sd*10+1.8,2.8,true,1.4,0,''));  // hai toà giải vũ
+  [-1,1].forEach(sd=>{box(.6,3.4,.6,MM(0xcdb88f),6,1.9,sd*12.2,g);box(1.6,.3,1,MM(0x8a7452),6,3.7,sd*12.2,g,false);solid2.push([tx+5.6,tx+6.4,tz+sd*12.2-.4,tz+sd*12.2+.4])}); // Nam–Bắc môn
+  box(1.6,.5,9,MM(0xcfc7b4),14,.35,0,g,false);
+  return g}
+
  // đền chính: tiền tế phía trước, hậu cung phía sau (gộp một khối 18 x 20 m trên ảnh vệ tinh)
- const [mx,mz]=TP.main,mainG=hallB(mx,mz,18,20,4.2,true,'Đền thờ Trạng Trình','Tiền tế · Hậu cung');
+ const [mx,mz]=TP.main,mainG=templeMain(mx,mz);nameTag('Đền thờ Trạng Trình','chữ Đinh: tiền tế · hậu cung',mx,10,mz,.85);
  // ban thờ, tượng thờ, hoành phi, câu đối, nến
  {const g=mainG;box(4,1.1,2.2,red,6,.95,0,g);box(3.2,.12,1.6,gold,6,1.55,0,g);
   const seat=MM(0xc9a14a,{metalness:.4,roughness:.45});box(1.6,1.2,1.2,seat,7.2,2.2,0,g);const bd=new THREE.Mesh(new THREE.CylinderGeometry(.45,.6,1.2,12),seat);bd.position.set(7.2,3.1,0);g.add(bd);
@@ -2087,10 +2193,7 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
  // sân giữa, hai dãy nhà hai bên, nhà phía trước (nghi môn)
  const [cx,cz]=TP.court;flat(20,18,cx,cz,MM(0xbdb7ad),.035);mr('#bdb7ad',cx-10,cx+10,cz-9,cz+9);
  hallB(cx,1959,19,6,3.2,false,'Nhà Tả vu','đoán tên');hallB(cx,1933,19,6,3.2,false,'Nhà Hữu vu','đoán tên');
- {const [gx,gz]=TP.gate,g=new THREE.Group();g.position.set(gx,0,gz);scene.add(g);box(12,.4,13,stone,0,.2,0,g);addRect(gx-6,gx+6,gz-6.5,gz+6.5,.4);
-  [-6,-3.4,3.4,6].forEach(z=>{box(10,3.2,.35,MM(0xcdb88f),0,2,z,g);solid2.push([gx-5,gx+5,gz+z-.25,gz+z+.25])});
-  [-1.7,1.7].forEach(z=>{box(.5,4.4,.5,col,-5,2.6,z,g);box(.5,4.4,.5,col,5,2.6,z,g)});
-  roof(g,12,13,3,4.6,true);nameTag('Nghi môn','cổng vào đền',gx,11,gz,.85);mr('#9c3b2a',gx-6,gx+6,gz-6.5,gz+6.5)}
+ {const [gx,gz]=TP.gate;triGate(gx,gz);nameTag('Nghi môn','cổng tam quan vào đền',gx,11,gz,.85);mr('#9c3b2a',gx-3,gx+3,gz-9,gz+9)}
  // lư hương lớn giữa sân, khói hương
  const LU={x:cx-3,z:cz};{const g=new THREE.Group();g.position.set(LU.x,0,LU.z);scene.add(g);const br=MM(0x6b4a24,{metalness:.6,roughness:.35});
   box(1.6,.8,1.6,stone,0,.4,0,g);const b=new THREE.Mesh(new THREE.CylinderGeometry(.75,.55,.8,16),br);b.position.y=1.2;g.add(b);
@@ -2106,13 +2209,23 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
   box(1.2,5,1.2,MM(0x5b4632),bx,2.5,bz);[0,1,2,3,4].forEach(i=>{const c=new THREE.Mesh(new THREE.IcosahedronGeometry(3.2+R()*1.2,0),MM(0x2f6b2c));c.position.set(bx+Math.cos(i*1.26)*2.6,6+R()*1.5,bz+Math.sin(i*1.26)*2.6);c.castShadow=true;scene.add(c)});
   solid2.push([bx-6,bx+6,bz-6,bz+6]);MAPR.push(['c','#3d7a5c',bx,bz,6]);nameTag('Cây đa giữa hồ','',bx,10,bz,.8)}
  // Am Bạch Vân (vị trí, hình dáng là ĐOÁN: nhà nhỏ hai tầng tám mái phía tây đền)
- {const [ax,az]=TP.bv;flat(16,14,ax,az,MM(0xc9764a),.034);mr('#c9764a',ax-8,ax+8,az-7,az+7);const g=hallB(ax,az,8,7,3,true,'Am Bạch Vân','vị trí đoán');flat(3,30,ax,1958,walkM,.035)}
+ {const [ax,az]=TP.bv;flat(16,14,ax,az,MM(0xc9764a),.034);mr('#c9764a',ax-8,ax+8,az-7,az+7);amBV(ax,az);nameTag('Am Bạch Vân','nhà 3 gian mái tranh · vị trí đoán',ax,7,az,.8);flat(3,30,ax,1958,walkM,.035)}
  // nhà thờ song thân (mái chóp, sân gạch đỏ phía Đông đường làng) – tên là ĐOÁN
- {const [tx,tz]=TP.sth;flat(32,48,tx+1,tz,MM(0xc9764a),.034);mr('#c9764a',93,125,1888,1936);flat(14,10,118,1930,lawn,.04);
-  const g=new THREE.Group();g.position.set(tx,0,tz);scene.add(g);box(13,.5,13,stone,0,.25,0,g);addRect(tx-6.5,tx+6.5,tz-6.5,tz+6.5,.5);
-  box(10,3.6,10,MM(0xe3d6bf),0,2.3,0,g);const py=new THREE.Mesh(new THREE.ConeGeometry(9.2,4.5,4),tileM);py.rotation.y=Math.PI/4;py.position.y=6.3;g.add(py);
-  const py2=new THREE.Mesh(new THREE.ConeGeometry(4,2.4,4),tileM);py2.rotation.y=Math.PI/4;py2.position.y=9;g.add(py2);solid2.push([tx-5,tx+5,tz-5,tz+5]);
-  nameTag('Đền thờ song thân','thân phụ, thân mẫu Trạng Trình · tên đoán',tx,13,tz,.85);mr('#9c3b2a',tx-6.5,tx+6.5,tz-6.5,tz+6.5)}
+ {const [tx,tz]=TP.sth;flat(32,48,tx+1,tz,MM(0xc9764a),.034);mr('#c9764a',93,125,1888,1936);flat(14,10,118,1930,lawn,.04);songThan(tx,tz);nameTag('Đền thờ song thân','chữ Công: ống muống, tiền tế, hậu cung, giải vũ',tx,10,tz,.85);mr('#9c3b2a',tx-10,tx+18,tz-12,tz+12)}
+ 
+ // tháp bút Kình Thiên: tháp 2 tầng 8 mái (theo bài báo; vị trí ĐOÁN ở rìa quảng trường)
+ {const tx=236,tz=1992,g=new THREE.Group();g.position.set(tx,0,tz);scene.add(g);
+  const oct=(r1,r2,h,y,mat)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,8),mat);m.position.y=y;m.castShadow=true;g.add(m);return m};
+  oct(3.4,3.6,.5,.25,MM(0xbdb2a0));oct(2.6,2.7,3.2,2.1,plaster);
+  const ro=(r,h,y)=>{const pts=[];for(let i=0;i<=10;i++){const t=i/10;pts.push(new THREE.Vector2(r*(1-t)+.05,h*(1-Math.pow(1-t,1.6))*1.0+(t>.85?-.0:0)))}const m=new THREE.Mesh(new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p.x,p.y)),8),roofM);m.position.y=y;m.castShadow=true;g.add(m)};
+  ro(4.2,1.5,3.6);oct(1.9,2.0,2.6,6.4,plaster);ro(3.2,1.3,7.6);
+  const fn=new THREE.Mesh(new THREE.CylinderGeometry(.06,.12,1.6,6),goldM);fn.position.y=9.9;g.add(fn);
+  box(1,1.8,.2,MM(0x2a1a10),0,1.4,2.6,g,false);
+  solid2.push([tx-3,tx+3,tz-3,tz+3]);addRect(tx-3.5,tx+3.5,tz-3.5,tz+3.5,.5);
+  nameTag('Tháp bút Kình Thiên','2 tầng 8 mái · vị trí đoán',tx,12,tz,.8);mr('#bdb2a0',tx-3.5,tx+3.5,tz-3.5,tz+3.5)}
+ // chi tiết nhỏ chỉ hiện khi đứng gần hoặc nhìn từ trên cao
+ anim.push(()=>{const sky=pos.y>40;for(const f of FINE){const dx=pos.x-f[1],dz=pos.z-f[2];f[0].visible=sky||dx*dx+dz*dz<f[3]*f[3]}});
+
  // bãi xe, sân hội chợ phía Đông đường làng
  const [px0,px1,pz0,pz1]=TP.park;flat(px1-px0,pz1-pz0,(px0+px1)/2,(pz0+pz1)/2,MM(0xa9a49c),.033);mr('#a9a49c',px0,px1,pz0,pz1);nameTag('Bãi xe – sân hội','hàng hương, trò chơi',100,4.5,1944,.85);
  for(let i=0;i<14;i++){const x=64+i*2.2,z=1940.5;const mb=new THREE.Group();mb.position.set(x,0,z);scene.add(mb);box(.25,.6,1.6,MM(pick([0xb3202a,0x1d1d1d,0x2a5db0,0xdedede])),0,.6,0,mb,false);[-.6,.6].forEach(b=>{const w=new THREE.Mesh(new THREE.TorusGeometry(.28,.06,6,12),MM(0x222222));w.rotation.y=Math.PI/2;w.position.set(0,.3,b);mb.add(w)})}
