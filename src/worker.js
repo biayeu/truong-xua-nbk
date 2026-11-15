@@ -36,9 +36,43 @@ function dataUrlBytes(d, max, only) {
   return { type: 'image/' + m[1], bytes: u };
 }
 
+// Âm thanh thật (Freesound, giấy phép CC0 = ai cũng được dùng tự do). Máy chủ lấy một lần rồi nhớ lại 30 ngày.
+const AM = {
+  d1: '666/666730_1171107', d2: '835/835521_14222808', d3: '748/748468_1315742', d4: '574/574661_97550', d5: '854/854365_16878885', d6: '769/769713_15722114',
+  s1: '96/96348_384438', s2: '826/826877_17291018', s3: '264/264045_4632327', s4: '751/751349_11318300', s5: '870/870555_18412227', s6: '737/737170_9617223', s7: '438/438422_2524442',
+  b1: '474/474740_3902754', b2: '648/648547_13716703',
+  c1: '403/403066_4940561', c2: '457/457895_2741562', c3: '404/404478_5200244',
+  n1: '412/412823_4451798', n3: '399/399823_5902878', n4: '572/572167_10680262', n5: '363/363721_6142149',
+  ve: '717/717588_97550'
+};
+const AM_CAP = 1600000;
+async function amProxy(url, ctx) {
+  const id = url.pathname.slice(4).replace(/\.mp3$/, '');
+  const path = AM[id];
+  if (!path) return new Response('khong co', { status: 404 });
+  const key = new Request(url.origin + '/am/' + id + '.mp3');
+  const cache = caches.default;
+  const hit = await cache.match(key);
+  if (hit) return hit;
+  for (const q of ['hq', 'lq']) {
+    try {
+      const f = await fetch('https://cdn.freesound.org/previews/' + path + '-' + q + '.mp3', { headers: { Range: 'bytes=0-' + AM_CAP } });
+      if (f.ok || f.status === 206) {
+        let buf = await f.arrayBuffer();
+        if (buf.byteLength > AM_CAP) buf = buf.slice(0, AM_CAP);
+        const r = new Response(buf, { status: 200, headers: { 'content-type': 'audio/mpeg', 'cache-control': 'public, max-age=2592000' } });
+        ctx.waitUntil(cache.put(key, r.clone()));
+        return r;
+      }
+    } catch (e) { /* thử bản thấp hơn */ }
+  }
+  return new Response('loi nguon', { status: 502 });
+}
+
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
+    if (url.pathname.startsWith('/am/') && /^\/am\/[a-z0-9]+\.mp3$/.test(url.pathname)) return amProxy(url, ctx);
     if (url.pathname.startsWith('/api/')) {
       const stub = env.SCHOOL.get(env.SCHOOL.idFromName('nbk'));
       return stub.fetch(req);

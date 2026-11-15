@@ -414,7 +414,7 @@ function audioInit(){
  const cg=AC.createGain();cg.gain.value=.035;
  const lfo=AC.createOscillator();lfo.frequency.value=36;const lg=AC.createGain();lg.gain.value=.022;lfo.connect(lg);lg.connect(cg.gain);
  const sw=AC.createOscillator();sw.frequency.value=.06;const sg=AC.createGain();sg.gain.value=.02;sw.connect(sg);sg.connect(cg.gain);
- veGain=AC.createGain();veGain.gain.value=(typeof veVol==='function')?veVol():1;src.connect(bp);bp.connect(cg);cg.connect(veGain);veGain.connect(master);src.start();lfo.start();sw.start();
+ veGain=AC.createGain();veGain.gain.value=0;src.connect(bp);bp.connect(cg);cg.connect(veGain);veGain.connect(master);src.start();lfo.start();sw.start();
  // nếu có file trong.mp3 (tiếng trống thật thu ở trường) thì dùng, không thì dùng tiếng trống tổng hợp
  fetch('/trong.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>b?AC.decodeAudioData(b):null).then(buf=>{if(buf)drumBuf=buf}).catch(()=>{});
  // nhạc nhẹ không lời
@@ -2769,7 +2769,7 @@ function applyBloom(){
  const m=bloomMonth(),F=BLOOM[m]||0;
  (window.__PHT||[]).forEach(g=>{const i=g.userData.fl;i.count=Math.round(g.userData.flN*F);i.visible=F>0});
  if(window.__ptsRef)window.__ptsRef.visible=F>=.5;
- if(veGain&&AC)veGain.gain.setTargetAtTime(veVol(),AC.currentTime,.3);
+ if(veGain&&AC)veGain.gain.setTargetAtTime(0,AC.currentTime,.3);
  const b=$('#bSeason');if(b)b.textContent='Phượng: '+((bloomOver||urlMonth())?'xem tháng '+m:'tháng '+m+' (thật)');
 }
 $('#bSeason').onclick=()=>{bloomOver=bloomOver===0?6:bloomOver===6?11:0;applyBloom()};
@@ -3198,7 +3198,7 @@ function buildDot9(){
  const hVN=()=>new Date(Date.now()+7*36e5).getUTCHours()+new Date(Date.now()+7*36e5).getUTCMinutes()/60;
  const winter=(()=>{const m=new Date(Date.now()+7*36e5).getUTCMonth()+1;return m>=11||m<=3})();
  /* dựng người: o={sex,age,kind:'hs'|'adult'|'elder'|'kid', seated} */
- function person(o){const g=new THREE.Group();const nu=o.sex==='nu',kid=o.kind==='kid',old=o.kind==='elder',hs=o.kind==='hs';const sc=kid?.62:nu?.95:1;
+ function person(o){const g=new THREE.Group();const nu=o.sex==='nu',kid=o.kind==='kid',old=o.kind==='elder',hs=o.kind==='hs';const sc=kid?.8:nu?.96:old?.97:1;
   const skin=MC(pick9(SKIN));let topC,botC;
   if(hs){topC=winter?0x1c2846:0xffffff;botC=nu&&!winter?0x1c2846:0x1c2846}else{topC=pick9(TOPS);botC=pick9(BOTS)}
   const top=MC(topC),bot=MC(botC),hairM=MC(old?0xbdbdbd:0x1d1712);
@@ -3270,7 +3270,7 @@ function buildDot9(){
    if(u.wait>0){u.wait-=dt;setWalkPose(u,0);continue}
    const s=u.spd*dt;let nx=g.position.x+dx/d*s,nz=g.position.z+dz/d*s;
    if(u.yard&&hit(nx,nz)){const t0=u.to;u.to=u.from;u.from=t0;u.wait=.5;continue}
-   g.position.x=nx;g.position.z=nz;g.rotation.y=Math.atan2(dx,dz);u.ph+=dt*u.spd*6;setWalkPose(u,Math.sin(u.ph)*.45)}
+   g.position.x=nx;g.position.z=nz;g.position.y+=(groundAt(nx,nz,1)-g.position.y)*Math.min(1,dt*10);g.rotation.y=Math.atan2(dx,dz);u.ph+=dt*u.spd*6;setWalkPose(u,Math.sin(u.ph)*.45)}
   // xe cộ
   const nV=Math.round(veh.length*(h>=5&&h<22?1:.2));let iv=0;
   for(const v of veh){const g=v.g;const idx=iv++;const dxp=g.position.x-px,dzp=g.position.z-pz;const vis=!inRoom&&idx<nV&&(sky||dxp*dxp+dzp*dzp<22500);
@@ -3292,63 +3292,43 @@ function buildDot6(){
  applyBloom();
 }
 
-/* ---------- ĐỢT 10: ÂM THANH SỐNG theo từng nơi (tự tạo bằng máy, không dùng bản ghi có bản quyền) ----------
-   Ngoài đường: xe máy, còi. Sân trường: học sinh nói chuyện, hò hét. Quán bia: "dô", chạm ly, nhạc sàn.
-   Quán cà phê/bánh mì: nói chuyện nhỏ, thìa chạm cốc, nhạc lofi. Quán net: gõ phím, hò hét gọi nhau, nạp thẻ, nhạc game.
-   Muốn tiếng thật: bỏ file duong.mp3, san.mp3, bia.mp3, cafe.mp3, net.mp3 vào thư mục public/am/ (trang tự dùng). */
+/* ---------- ĐỢT 10 (bản 2): ÂM THANH THẬT theo từng nơi ----------
+   Bản thu thật từ Freesound (giấy phép CC0, ai cũng được dùng): xe cộ ở TP Hồ Chí Minh / Hà Nội / Hội An, trẻ nô đùa giờ ra chơi,
+   quán ăn người Việt, cổ vũ trong quán, gõ phím, quán cà phê. Máy chủ lấy về một lần rồi nhớ lại (đường /am/…).
+   Mỗi nơi có nhiều bản, trộn ngẫu nhiên và chuyển mượt để không lặp. */
 (function(){
  const PH={
-  san:['Ê, đá bóng không?','Cho tao mượn vở với!','Trống rồi, vào lớp thôi!','Mày làm bài chưa?','Chờ tao với!','Mua cho tao cái bánh mì que!'],
-  bia:['Một, hai, ba, dô!','Dô dô dô!','Chúc sức khỏe!','Cho thêm đĩa lạc rang nữa!','Bia hơi đâu, mang ra đây!','Nào, một cốc nữa!'],
-  cafe:['Cho một cốc nâu đá.','Em ơi, thêm ly bạc xỉu.','Bánh mì pa-tê hai ổ nhé.','Lâu lắm mới gặp lại nhau.','Mày vẫn như xưa nhỉ.'],
-  net:['Nạp cho anh năm chục nghìn.','Em ơi, nạp thẻ hai chục vào máy số bảy.','Bên trái, bên trái, đánh nó đi!','Chết rồi, hồi máu đi!','Vào đây đi, đủ năm người rồi!','Gánh tao với, sắp thua rồi!','Cho anh gói mì tôm trứng.','Máy mười bị đơ rồi chủ quán ơi!'],
-  duong:['Bánh mì nóng giòn đây!','Mua xôi không con?']};
- let L=null,zone='duong',busyF=1,near={bia:0,net:0},lastSay=0,ready=false,pendingNoteT=0;
- const rnd=(a,b)=>a+Math.random()*(b-a);
- function nb(sec){const n=Math.floor(AC.sampleRate*sec),b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);let l=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;l=l*.96+w*.04;d[i]=(w*.5+l*3)}return b}
- function src(buf){const s=AC.createBufferSource();s.buffer=buf;s.loop=true;s.start(0,Math.random()*buf.duration*.9);return s}
- function gain(v,to){const g=AC.createGain();g.gain.value=v;if(to)g.connect(to);return g}
- // tiếng người nói chuyện lẫn lộn: nhiều "giọng", mỗi giọng là nhiễu lọc theo 3 dải âm của giọng nói, nhịp bật tắt như từng âm tiết
- function babble(out,voices,c,vol){const buf=nb(3),o=gain(vol,out);
-  for(let v=0;v<voices;v++){const s=src(buf),vg=gain(.4,o),sy=rnd(2.5,6.5);
-   [[500,5,1],[1500,6,.7],[2700,7,.4]].forEach(([f,q,a])=>{const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=f*c*rnd(.85,1.2);bp.Q.value=q;const g=gain(.5*a,vg);const lf=AC.createOscillator();lf.frequency.value=sy*rnd(.8,1.25);const lg=gain(.5*a,g.gain);lf.connect(lg);lf.start();s.connect(bp);bp.connect(g)});
-   const sw=AC.createOscillator();sw.frequency.value=rnd(.15,.5);const sg=gain(.3,vg.gain);sw.connect(sg);sw.start()}
-  return o}
- function pan(n,p){if(AC.createStereoPanner){const s=AC.createStereoPanner();s.pan.value=p;n.connect(s);return s}return n}
- function shout(to,f0,vol,dur){const t=AC.currentTime,o=AC.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(f0,t);o.frequency.linearRampToValueAtTime(f0*rnd(.8,1.3),t+dur);
-  const g=gain(.0001);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.04);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
-  [[700,5],[1200,6],[2800,8]].forEach(([f,q],i)=>{const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=f*(f0/220>1.6?1.5:1)*rnd(.9,1.1);bp.Q.value=q;const a=gain(i===0?1:.6);o.connect(bp);bp.connect(a);a.connect(g)});
-  const pn=pan(g,rnd(-.8,.8));pn.connect(to);o.start(t);o.stop(t+dur+.05)}
- function ping(to,f,vol,dec){const t=AC.currentTime,o=AC.createOscillator();o.type='sine';o.frequency.value=f;const g=gain(.0001,to);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+dec);o.connect(g);o.start(t);o.stop(t+dec+.05)}
- function click(to){const t=AC.currentTime,b=AC.createBuffer(1,Math.floor(AC.sampleRate*.02),AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);
-  const s=AC.createBufferSource();s.buffer=b;const hp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=rnd(2200,4200);const g=gain(rnd(.15,.5));s.connect(hp);hp.connect(g);const p=pan(g,rnd(-.9,.9));p.connect(to);s.start(t+Math.random()*.4)}
- function moto(to){const t=AC.currentTime,dur=rnd(2,3.4),o=AC.createOscillator();o.type='sawtooth';const f=rnd(70,110);o.frequency.setValueAtTime(f,t);o.frequency.linearRampToValueAtTime(f*rnd(1.5,2),t+dur*.45);o.frequency.linearRampToValueAtTime(f*.9,t+dur);
-  const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=520;const g=gain(.0001);g.gain.linearRampToValueAtTime(.12,t+dur*.4);g.gain.linearRampToValueAtTime(.0001,t+dur);o.connect(lp);lp.connect(g);const st=AC.createStereoPanner?AC.createStereoPanner():null;if(st){st.pan.setValueAtTime(-.9,t);st.pan.linearRampToValueAtTime(.9,t+dur);g.connect(st);st.connect(to)}else g.connect(to);o.start(t);o.stop(t+dur+.1)}
- function honk(to){const t=AC.currentTime;[420,530].forEach(f=>{const o=AC.createOscillator();o.type='square';o.frequency.value=f;const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1500;const g=gain(.0001,to);g.gain.setValueAtTime(.05,t);g.gain.setValueAtTime(.05,t+.18);g.gain.exponentialRampToValueAtTime(.0001,t+.24);o.connect(lp);lp.connect(g);o.start(t);o.stop(t+.3)})}
+  san:['Ê, đá bóng không?','Cho tao mượn vở với!','Trống rồi, vào lớp thôi!','Mày làm bài chưa?','Chờ tao với!'],
+  bia:['Một, hai, ba, dô!','Dô dô dô!','Chúc sức khỏe!','Cho thêm đĩa lạc rang nữa!'],
+  cafe:['Cho một cốc nâu đá.','Bánh mì pa-tê hai ổ nhé.','Lâu lắm mới gặp lại nhau.'],
+  net:['Nạp cho anh năm chục nghìn.','Em ơi, nạp thẻ hai chục vào máy số bảy.','Bên trái, bên trái, đánh nó đi!','Vào đây đi, đủ năm người rồi!','Cho anh gói mì tôm trứng.']};
+ // mỗi nơi gồm vài "dải"; mỗi dải có danh sách bản thu, phát ngẫu nhiên, chuyển mượt
+ const MIX={
+  duong:[{u:['d1','d2','d3','d4','d5','d6'],v:1}],
+  san:[{u:['s1','s2','s3','s4','s5'],v:1},{u:['s6','s7'],v:.55}],
+  bia:[{u:['b1'],v:1},{u:['b2'],v:.7}],
+  cafe:[{u:['c1','c2','c3'],v:1},{u:['b1'],v:.35}],
+  net:[{u:['n1','n5'],v:.8},{u:['s7','s6'],v:.8},{u:['n3','n4'],v:.9}],
+  ve:[{u:['ve'],v:1}]};
+ let L=null,zone='duong',ready=false,lastSay=0;const bufs={};
+ const rnd=(a,b)=>a+Math.random()*(b-a),pick=a=>a[(Math.random()*a.length)|0];
+ function getBuf(id){if(!bufs[id])bufs[id]=fetch('/am/'+id+'.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>b?new Promise((ok,no)=>{const p=AC.decodeAudioData(b,ok,no);if(p&&p.catch)p.catch(no)}):null).catch(()=>{bufs[id]=null;return null});return bufs[id]}
+ function seg(T){
+  if(!T.on||!AC){T.running=false;return}
+  const id=pick(T.u);
+  getBuf(id).then(buf=>{
+   if(!T.on){T.running=false;return}
+   if(!buf){T.timer=setTimeout(()=>seg(T),9000);return}
+   const dur=Math.min(buf.duration,rnd(28,50)),off=Math.random()*Math.max(0,buf.duration-dur),fade=Math.min(4,dur/3),t=AC.currentTime;
+   const s=AC.createBufferSource();s.buffer=buf;const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(T.v,t+fade);g.gain.setValueAtTime(T.v,t+dur-fade);g.gain.linearRampToValueAtTime(0,t+dur);
+   s.connect(g);g.connect(T.out);s.start(t,off,dur);
+   T.timer=setTimeout(()=>seg(T),Math.max(1500,(dur-fade)*1000))})}
  function build(){
   if(L||!AC||!master)return;
-  const mk=()=>({g:gain(0,master),t:0,real:null});
-  L={duong:mk(),san:mk(),bia:mk(),cafe:mk(),net:mk(),mus:{bia:gain(0,master),cafe:gain(0,master),net:gain(0,master)}};
-  const rum=nb(4),lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=260;const rs=src(rum);rs.connect(lp);const rg=gain(.5,L.duong.g);lp.connect(rg);
-  L.duong.syn=rg;
-  L.san.syn=babble(L.san.g,9,1.45,1.0);L.bia.syn=babble(L.bia.g,7,1.0,1.1);L.cafe.syn=babble(L.cafe.g,3,1.1,.8);L.net.syn=babble(L.net.g,4,.95,.7);
-  // nếu có file thật thì dùng, tắt bớt tiếng máy tạo
-  ['duong','san','bia','cafe','net'].forEach(k=>fetch('/am/'+k+'.mp3').then(r=>r.ok&&/audio|octet/.test(r.headers.get('content-type')||'')?r.arrayBuffer():null).then(b=>b?AC.decodeAudioData(b):null).then(buf=>{if(!buf)return;const s=AC.createBufferSource();s.buffer=buf;s.loop=true;s.connect(gain(1,L[k].g));s.start();L[k].syn.gain.value*=.12;L[k].real=1}).catch(()=>{}));
+  const comp=AC.createDynamicsCompressor();comp.threshold.value=-22;comp.ratio.value=3;comp.connect(master);
+  L={};['duong','san','bia','cafe','net','ve'].forEach(k=>{const g=AC.createGain();g.gain.value=0;g.connect(comp);L[k]={g,tr:MIX[k].map(m=>({u:m.u,v:m.v,out:g,on:false,running:false}))}});
   ready=true}
- // nhạc từng quán: bia = nhạc sàn dập, cà phê = lofi dịu, net = 8-bit
- let nx=0,bt=0;
- function music(){if(!ready||!AC)return;const T=AC.currentTime;if(nx<T)nx=T+.05;
-  const gb=L.mus.bia.gain.value>.01,gc=L.mus.cafe.gain.value>.01,gn=L.mus.net.gain.value>.01;if(!gb&&!gc&&!gn)return;
-  while(nx<T+.5){const t=nx;
-   if(gb){const kick=()=>{const o=AC.createOscillator();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(45,t+.12);const g=gain(.0001,L.mus.bia);g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.0001,t+.2);o.connect(g);o.start(t);o.stop(t+.25)};
-    if(bt%2===0)kick();
-    if(bt%2===1){const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=[55,55,65.4,49][(bt/8|0)%4];const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=300;const g=gain(.0001,L.mus.bia);g.gain.setValueAtTime(.35,t);g.gain.exponentialRampToValueAtTime(.0001,t+.22);o.connect(lp);lp.connect(g);o.start(t);o.stop(t+.3)}
-    if(bt%2===1)click(L.mus.bia);
-    if(bt%4===0){const sc=[392,440,523.3,587.3,659.3];ping(L.mus.bia,sc[(Math.random()*5)|0],.3,.3)}}
-   if(gc&&bt%8===0){const ch=[[261.6,329.6,392,493.9],[220,261.6,329.6,392],[293.7,349.2,440,523.3],[196,246.9,293.7,349.2]][(bt/8|0)%4];ch.forEach((f,i)=>{const o=AC.createOscillator();o.type='triangle';o.frequency.value=f;const g=gain(.0001,L.mus.cafe);g.gain.setValueAtTime(.0001,t+i*.04);g.gain.exponentialRampToValueAtTime(.22,t+i*.04+.05);g.gain.exponentialRampToValueAtTime(.0001,t+2.6);o.connect(g);o.start(t+i*.04);o.stop(t+2.7)});}
-   if(gc&&bt%2===1)click(L.mus.cafe);
-   if(gn&&bt%1===0){const sc=[220,261.6,293.7,329.6,392,440,523.3,587.3];const f=sc[((bt*3+(bt>>3))%8+8)%8];const o=AC.createOscillator();o.type='square';o.frequency.value=f;const g=gain(.0001,L.mus.net);g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.0001,t+.2);o.connect(g);o.start(t);o.stop(t+.25)}
-   nx+=gb?.234:gc?.5:.18;bt++}}
+ function setActive(k,on){if(!L)return;L[k].tr.forEach(T=>{T.on=on;if(on&&!T.running){T.running=true;seg(T)}})}
  function zoneNow(){
   if(typeof inRoom!=='undefined'&&inRoom)return 'lop';
   if(pos.y>40)return 'cao';
@@ -3357,35 +3337,27 @@ function buildDot6(){
   if(pos.z>1000)return 'den';
   if(pos.x>-63.6&&pos.x<83.6&&pos.z>-111&&pos.z<15.5)return 'san';
   return 'duong'}
- function schoolBusy(){const d=new Date(Date.now()+7*3600000),dow=d.getUTCDay(),m=d.getUTCHours()*60+d.getUTCMinutes();if(dow===0)return .2;return((m>=420&&m<=675)||(m>=810&&m<=1065))?1:.3}
- function say(zk){if(!soundOn||!('speechSynthesis' in window)||Date.now()-lastSay<7000)return;const list=PH[zk];if(!list)return;
+ function schoolBusy(){const d=new Date(Date.now()+7*3600000),dow=d.getUTCDay(),m=d.getUTCHours()*60+d.getUTCMinutes();if(dow===0)return .25;return((m>=420&&m<=675)||(m>=810&&m<=1065))?1:.35}
+ function say(zk){if(!soundOn||!('speechSynthesis' in window)||Date.now()-lastSay<14000)return;const list=PH[zk];if(!list)return;
   const vs=speechSynthesis.getVoices().filter(v=>/^vi/i.test(v.lang));if(!vs.length)return;
-  lastSay=Date.now();try{const u=new SpeechSynthesisUtterance(list[(Math.random()*list.length)|0]);u.voice=vs[(Math.random()*vs.length)|0];u.lang=vs[0].lang;u.volume=zk==='duong'?.3:.7;u.rate=rnd(.95,1.15);u.pitch=rnd(.7,1.5);speechSynthesis.speak(u)}catch(e){}}
+  lastSay=Date.now();try{const u=new SpeechSynthesisUtterance(pick(list));u.voice=pick(vs);u.lang=vs[0].lang;u.volume=.55;u.rate=rnd(.95,1.1);u.pitch=rnd(.8,1.3);speechSynthesis.speak(u)}catch(e){}}
  function tick(){
   if(!AC||!master)return;build();if(!L)return;
-  const z=zoneNow();zone=z;busyF=schoolBusy();
-  let nbia=1e9,nnet=1e9;
-  try{const bx=-76,bz=12,nx2=275,nz2=82;nbia=Math.hypot(pos.x-bx,pos.z-bz);nnet=Math.hypot(pos.x-nx2,pos.z-nz2)}catch(e){}
-  const pb=z==='bia'?1:Math.max(0,1-nbia/22)*.55,pn=z==='net'?1:Math.max(0,1-nnet/18)*.5;
-  const T={duong:0,san:0,bia:pb,cafe:z==='cafe'?1:0,net:pn};
-  T.duong=z==='duong'?.8:z==='san'?.22:z==='cao'?.35:z==='den'?.25:.07;
-  T.san=z==='san'?.9*busyF+.1:z==='lop'?.18*busyF:0;
+  const z=zoneNow();zone=z;const busy=schoolBusy();
+  const nbia=Math.hypot(pos.x+76,pos.z-12),nnet=Math.hypot(pos.x-275,pos.z-82);
+  const pb=z==='bia'?1:Math.max(0,1-nbia/22)*.5,pn=z==='net'?1:Math.max(0,1-nnet/18)*.5;
+  const T={
+   duong:z==='duong'?1:z==='san'?.25:z==='cao'?.4:z==='den'?.3:z==='lop'?.05:.08,
+   san:z==='san'?(.4+.6*busy):z==='lop'?.2*busy:z==='duong'&&pos.z<30&&pos.x>-70&&pos.x<90?.25*busy:0,
+   bia:pb,cafe:z==='cafe'?1:0,net:pn};
+  const veV=(typeof veVol==='function'?veVol():1),ve=(z==='duong'||z==='san'||z==='den')&&!(new Date(Date.now()+7*3600000).getUTCHours()>=19||new Date(Date.now()+7*3600000).getUTCHours()<5)?.55*veV:0;
   const gt=AC.currentTime;
-  for(const k in T)L[k].g.gain.setTargetAtTime(soundOn?T[k]*.9:0,gt,.6);
-  L.mus.bia.gain.setTargetAtTime(soundOn?(z==='bia'?.5:Math.max(0,pb-.15)*.5):0,gt,.6);
-  L.mus.cafe.gain.setTargetAtTime(soundOn&&z==='cafe'?.55:0,gt,.6);
-  L.mus.net.gain.setTargetAtTime(soundOn?(z==='net'?.35:pn>.25?pn*.2:0):0,gt,.6);
-  if(window.__bgBus)window.__bgBus.gain.setTargetAtTime(z==='bia'||z==='cafe'||z==='net'?.02:.13,gt,.8);
+  for(const k in T){const v=soundOn?T[k]:0;L[k].g.gain.setTargetAtTime(v,gt,.8);setActive(k,v>.04)}
+  L.ve.g.gain.setTargetAtTime(soundOn?ve:0,gt,1.2);setActive('ve',soundOn&&ve>.04);
+  if(window.__bgBus)window.__bgBus.gain.setTargetAtTime(.02,gt,.8);
   if(!soundOn)return;
-  // sự kiện ngẫu nhiên
-  if(T.duong>.3&&Math.random()<.45)moto(L.duong.g);
-  if(T.duong>.3&&Math.random()<.12)honk(L.duong.g);
-  if(T.san>.15&&Math.random()<.9*busyF+.1){shout(L.san.g,rnd(380,640),rnd(.12,.3),rnd(.25,.6));if(Math.random()<.4)shout(L.san.g,rnd(420,700),rnd(.1,.22),rnd(.2,.5))}
-  if(pb>.2&&Math.random()<.16){const n=3+((Math.random()*4)|0);for(let i=0;i<n;i++)setTimeout(()=>{if(L)shout(L.bia.g,rnd(120,190),rnd(.15,.3),rnd(.3,.55))},i*90);setTimeout(()=>{for(let i=0;i<3;i++)ping(L.bia.g,rnd(2800,4200),.12,.18)},400)}
-  if(L.cafe.g.gain.value>.2&&Math.random()<.17)ping(L.cafe.g,rnd(1900,2600),.1,.35);
-  if(pn>.2){const c=2+((Math.random()*5)|0);for(let i=0;i<c;i++)click(L.net.g);if(Math.random()<.2)shout(L.net.g,rnd(110,200),rnd(.15,.3),rnd(.3,.7))}
-  if(z==='san'&&Math.random()<.06*busyF||z==='bia'&&Math.random()<.18||z==='cafe'&&Math.random()<.1||z==='net'&&Math.random()<.22||z==='duong'&&nbia<10&&Math.random()<.05)say(z==='duong'?(nbia<10?'bia':'duong'):z)}
- setInterval(tick,1000);setInterval(music,220);window.__zone=()=>[zone,ready,AC&&AC.state];
+  if(z==='san'&&Math.random()<.05*busy||z==='bia'&&Math.random()<.15||z==='cafe'&&Math.random()<.06||z==='net'&&Math.random()<.18)say(z)}
+ setInterval(tick,1000);window.__zone=()=>[zone,ready,AC&&AC.state];
  // mở khoá âm thanh trên điện thoại: iPhone tắt tiếng khi gạt nút im lặng, nên cho một thẻ audio rỗng chạy để chuyển sang chế độ phát nhạc
  function unlock(){try{audioInit();if(AC&&AC.state!=='running')AC.resume()}catch(e){}
   if(!window.__sil){try{const n=4000,b=new ArrayBuffer(44+n),v=new DataView(b),w=(o,s)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);for(let i=0;i<n;i++)v.setUint8(44+i,128);
