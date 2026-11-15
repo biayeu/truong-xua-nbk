@@ -165,3 +165,9 @@ Sếp yêu cầu giao diện KHÁC trang THPT Vĩnh Bảo (thpt-vinh-bao.tranngo
 - Ra gần quán thì nghe nhỏ dần, vào trong quán nghe rõ, nhạc nền nhẹ tự hạ.
 - Muốn tiếng THẬT: bỏ file duong.mp3, san.mp3, bia.mp3, cafe.mp3, net.mp3 vào thư mục public/am/ (tự dùng, tiếng máy tạo giảm còn 12%). Cần file tự thu hoặc miễn phí bản quyền.
 - Hàm thử nghiệm: window.__zone(), window.__dbg(), window.__setRide(v).
+
+## Đợt 10 v2 (âm thanh thật + người đi đường)
+- Bỏ âm thanh tổng hợp (giả). Dùng 23 đoạn ghi âm thật Freesound CC0 (đường phố, sân trường học sinh, quán bia, cafe, quán net, ve), Worker phát qua /am/<mã>.mp3 (cache 30 ngày). Danh sách mã trong src/worker.js (AM). Đã kiểm trên web thật: cả 23 đoạn trả 200 và giải mã được.
+- Vùng âm thanh: lop/cao/bia/net/cafe/den/san/duong, hàm window.__zone(). Ve theo tháng/giờ. Giọng đọc tiếng Việt chỉ khi trình duyệt có.
+- Người đi đường: kid .8, nữ .96; chân tự nâng theo mặt cầu (groundAt).
+- Chưa kiểm: độ to nhỏ thật bằng tai, chạy trên điện thoại.
