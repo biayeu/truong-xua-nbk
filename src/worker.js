@@ -20,11 +20,12 @@ const normLop = s => clean(s, 10).toUpperCase().replace(/\s+/g, '');
 const rnd = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); };
 const pin6 = () => String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
 async function sha(s) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
-const okRoom = r => r === 'truong' || KHOA_RE.test(r) || /^quan-(bia|mori|che|net)$/.test(r);
+const okRoom = r => r === 'truong' || KHOA_RE.test(r) || /^quan-(bia|mori|che|net|dem)$/.test(r);
 const LOOK_KEYS = { hair: 12, shoes: 12, acc: 40, uni: 12, skin: 8, veh: 12 };
 function cleanLook(l) {
   const o = {}; if (!l || typeof l !== 'object') return o;
   for (const k in LOOK_KEYS) if (l[k] != null) o[k] = clean(l[k], LOOK_KEYS[k]).replace(/[^a-z0-9,_-]/gi, '');
+  if (l.nick != null) { const n = clean(l.nick, 16).replace(/[<>&"'`\\]/g, ''); if (n) o.nick = n; }  // biệt danh (đợt 11)
   return o;
 }
 function dataUrlBytes(d, max, only) {
@@ -45,7 +46,7 @@ const AM = {
   n1: '412/412823_4451798', n3: '399/399823_5902878', n4: '572/572167_10680262', n5: '363/363721_6142149',
   ve: '717/717588_97550',
   // miền Bắc / Việt Nam thêm ngày 15/11/2026 (CC0): h1 ếch nhái dế Gia Lâm Hà Nội, h2 làng quê miền Bắc, h3 chùa Bạch Mã Hà Nội, h4 đường Hồ Thiền Quang Hà Nội, h5 phố cổ Hà Nội, h6 còi xe Hà Nội, h7 làng quê xe máy, h8 đêm Cát Tiên, m1 chợ Bến Thành
-  h1: '136/136471_2495229', h2: '854/854389_16878885', h3: '842/842051_16719305', h4: '149/149762_756500', h5: '842/842036_16719305', h6: '574/574662_97550', h7: '402/402960_7794234', h8: '806/806575_5417386', m1: '447/447777_8816488'
+  h1: '136/136471_2495229', h2: '854/854389_16878885', h3: '842/842051_16719305', h4: '149/149762_756500', h5: '842/842036_16719305', h6: '574/574662_97550', h7: '402/402960_7794234', h8: '806/806575_5417386', m1: '447/447777_8816488', l1: '806/806542_5417386'
 };
 const AM_CAP = 1600000;
 async function amProxy(url, ctx) {
