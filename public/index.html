@@ -2527,27 +2527,27 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
  /* --- nền: cỏ, ruộng lúa, đường QL37, kênh, đường bờ bắc --- */
  flatL(G,-10,700,-280,280,MM(0x9fb27a),-.02);
  const ricT=ctex(256,256,(g,w,h)=>{g.fillStyle='#8fb35a';g.fillRect(0,0,w,h);for(let y=0;y<h;y+=8){g.fillStyle=y%16?'#7fa64c':'#9bc068';g.fillRect(0,y,w,4)}g.fillStyle='#6d5a3a';g.fillRect(0,0,w,3);g.fillRect(0,0,3,h)});ricT.wrapS=ricT.wrapT=THREE.RepeatWrapping;ricT.repeat.set(22,5);
- flatL(G,0,640,128,260,new THREE.MeshStandardMaterial({map:ricT,roughness:1}),.005);mapR('#8fb35a',0,640,128,260);
+ flatL(G,0,720,128,260,new THREE.MeshStandardMaterial({map:ricT,roughness:1}),.005);mapR('#8fb35a',0,720,128,260);
  const asp=MM(0x6f6b66),walkM=MM(0xb56a52),dirt=MM(0xa89878),conc=MM(0xb9b2a6);
- flatL(G,-2,640,-6.4,6.2,asp,.031);mapR('#6f6b66',-2,640,-6.4,6.2);
- for(let u=2;u<640;u+=6)boxL(G,2.6,.02,.16,MM(0xf2c94c),u,.05,0);
- [-4.6,4.6].forEach(s=>boxL(G,642,.02,.12,MM(0xf2efe6),319,.05,s));
- flatL(G,-2,640,6.2,8.6,walkM,.04);boxL(G,642,.16,.22,MM(0xd9d4c8),319,.08,6.2);
- flatL(G,-2,640,-7.6,-6.4,MM(0x7da44f),.035);
+ flatL(G,-2,720,-6.4,6.2,asp,.031);mapR('#6f6b66',-2,720,-6.4,6.2);
+ for(let u=2;u<720;u+=6)boxL(G,2.6,.02,.16,MM(0xf2c94c),u,.05,0);
+ [-4.6,4.6].forEach(s=>boxL(G,722,.02,.12,MM(0xf2efe6),359,.05,s));
+ flatL(G,-2,720,6.2,8.6,walkM,.04);boxL(G,722,.16,.22,MM(0xd9d4c8),359,.08,6.2);
+ flatL(G,-2,720,-7.6,-6.4,MM(0x7da44f),.035);
  // lan can tôn lượn sóng bên mép kênh (ảnh đường phố)
  const rail=(a,b)=>{if(b-a<.5)return;const g=cOf(a);boxL(g,b-a,.32,.06,MM(0xb0bec5,{metalness:.5,roughness:.35}),(a+b)/2,.62,-7.1,false);for(let k=a+1;k<b;k+=4)boxL(g,.1,.7,.1,MM(0x8d8d8d),k,.35,-7.1,false)};
- for(let u=0;u<640;u+=20){const a=u,b=Math.min(640,u+20);if(b>545&&a<555){rail(a,545);rail(555,b)}else rail(a,b)}
- solidL(-2,545,-7.4,-6.95);solidL(555,640,-7.4,-6.95);
+ for(let u=0;u<720;u+=20){const a=u,b=Math.min(720,u+20);if(b>545&&a<555){rail(a,545);rail(555,b)}else rail(a,b)}
+ solidL(-2,545,-7.4,-6.95);solidL(555,720,-7.4,-6.95);
  // kênh: bờ kè đá hai bên
- flatL(G,-2,640,-40.4,-7.6,new THREE.MeshStandardMaterial({color:0x4f7a6a,roughness:.25,metalness:.1}),.06);mapR('#4f7a6a',-2,640,-40.4,-7.6);
- boxL(G,642,.6,.5,MM(0xa39d93),319,.15,-7.7,false);boxL(G,642,.6,.5,MM(0xa39d93),319,.15,-40.3,false);
+ flatL(G,-2,720,-40.4,-7.6,new THREE.MeshStandardMaterial({color:0x4f7a6a,roughness:.25,metalness:.1}),.06);mapR('#4f7a6a',-2,720,-40.4,-7.6);
+ boxL(G,722,.6,.5,MM(0xa39d93),359,.15,-7.7,false);boxL(G,722,.6,.5,MM(0xa39d93),359,.15,-40.3,false);
  // đường bờ bắc kênh + vỉa hè
- flatL(G,-2,640,-54.4,-40.4,asp,.03);flatL(G,-2,640,-62.4,-54.4,MM(0xd9c9a8),.035);mapR('#6f6b66',-2,640,-54.4,-40.4);mapR('#d9c9a8',-2,640,-62.4,-54.4);
- zone(-3,641,-6.8,8.7);zone(-3,641,-62,-40.2);
+ flatL(G,-2,720,-54.4,-40.4,asp,.03);flatL(G,-2,720,-62.4,-54.4,MM(0xd9c9a8),.035);mapR('#6f6b66',-2,720,-54.4,-40.4);mapR('#d9c9a8',-2,720,-62.4,-54.4);
+ zone(-3,721,-6.8,8.7);zone(-3,721,-62,-40.2);
  // hàng dừa ven kênh (ảnh đường phố)
  function palmL(par,u,s,h){const g=new THREE.Group();g.position.set(u,0,s);par.add(g);const tr=new THREE.Mesh(new THREE.CylinderGeometry(.14,.2,h,6),MM(0x7a6650));tr.position.y=h/2;tr.rotation.z=(R()-.5)*.15;g.add(tr);
   for(let i=0;i<7;i++){const f=new THREE.Mesh(new THREE.BoxGeometry(2.6,.03,.5),MM(0x4f8a3a));const p=new THREE.Group();p.position.y=h;p.rotation.y=i*.9;f.position.x=1.2;f.rotation.z=-.35;p.add(f);g.add(p)}}
- for(let u=8;u<640;u+=11+R()*8){if(u>538&&u<562)continue;palmL(cOf(u),u,-7.45,6+R()*3)}
+ for(let u=8;u<720;u+=11+R()*8){if(u>538&&u<562)continue;palmL(cOf(u),u,-7.45,6+R()*3)}
 
  /* --- mặt tiền nhà ống: vẽ sẵn tường, cửa cuốn, cửa sổ, ban công --- */
  const WALLC=['#f3e3b5','#e9c9a0','#f6efe2','#d9e4ea','#f2d0c4','#e3e8cf','#f0d78a','#c9dbe9','#ffffff','#e6d2b5'];
@@ -2595,9 +2595,9 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
   500:[5,'Cà phê – giải khát','nâu đá · sinh tố','#5d4037',0,'Cốc nâu đá ngồi ngắm xe qua lại. (minh hoạ)'],
   564:[6,'Bưu điện Nam Am','theo Google Maps','#f9a825',1,'Bưu điện Nam Am (theo Google Maps).'],
   586:[6,'Thành Vũ Mobile','điện thoại · theo Google Maps','#1565c0',1,'Thành Vũ Mobile Vĩnh Bảo (theo Google Maps): cửa hàng điện thoại.']};
- const GAPS=[[173,179.5],[266,291],[290.5,294.5],[336,356],[390,418],[541,547.5]];
+ const GAPS=[[173,179.5],[266,291],[290.5,294.5],[336,356],[390,418],[541,547.5],[615,623.5],[627.5,656.5],[661.5,670]];
  const keyAt=(T,u,w)=>Object.keys(T).find(k=>Math.abs(+k-(u+w/2))<w/2+.6);
- for(let u=0;u<636;){let w=4+Math.floor(R()*3);const gp=GAPS.find(g=>u+w>g[0]&&u<g[1]);if(gp){u=gp[1];continue}
+ for(let u=0;u<718;){let w=4+Math.floor(R()*3);const gp=GAPS.find(g=>u+w>g[0]&&u<g[1]);if(gp){u=gp[1];continue}
   const k=keyAt(SOUTH,u,w);if(k){const t=SOUTH[k];delete SOUTH[k];w=t[0];const cu=+k;hs(cu,8.6,1,w,{sign:[t[1],t[2],t[3]]});act(cu,7.4,2.4,'Ghé '+t[1],()=>toast(t[5]));DOTS.push([cu,8.6,t[4]?'r':'m']);
    if(t[1]==='Cà phê – giải khát'||t[1]==='Bánh mì – xôi sáng'){const g=cOf(cu);[[cu-1.2,7.6],[cu+1.2,7.6]].forEach(([a,b])=>{boxL(g,.6,.04,.45,MM(0xeceff1),a,.45,b,false);[-.5,.5].forEach(o=>boxL(g,.26,.26,.26,MM(0x1565c0),a+o,.13,b,false))})}
    u=Math.max(u,cu+w/2);continue}
@@ -2608,16 +2608,16 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
   402:[6,'Bia hơi bờ kênh','bia hơi · lạc rang · ốc','#b7791f',0,'Chiều mát ngồi bia hơi ngắm kênh. (minh hoạ)'],
   470:[5,'Gội đầu – cắt tóc','nữ · gội đầu dưỡng sinh','#ad1457',0,'Tiệm gội đầu của cô hàng xóm. (minh hoạ)'],
   561:[7,'Chè Nhớ Café','chè · cà phê · theo Google Maps','#00897b',1,'Chè Nhớ Café (theo Google Maps) ở chân cầu Nam Am: cốc chè khúc bạch, cà phê muối, ngồi nhìn ra kênh.']};
- for(let u=0;u<636;){let w=4+Math.floor(R()*3);if(u+w>545&&u<555.5){u=555.5;continue}
+ for(let u=0;u<718;){let w=4+Math.floor(R()*3);if(u+w>545&&u<555.5){u=555.5;continue}
   const k=keyAt(NORTH,u,w);if(k){const t=NORTH[k];delete NORTH[k];w=t[0];const cu=+k;hs(cu,-62.4,-1,w,{sign:[t[1],t[2],t[3]]});act(cu,-60.8,2.6,'Ghé '+t[1],()=>toast(t[5]));DOTS.push([cu,-62.4,t[4]?'r':'m']);
    const g=cOf(cu);[[cu-1.6,-58.6],[cu+1.6,-58.6]].forEach(([a,b],i)=>{if(t[1].startsWith('Bia')){boxL(g,.8,.05,.6,MM(0xc62828),a,.45,b,false);[-.55,.55].forEach(o=>boxL(g,.28,.24,.28,MM(0x1565c0),a+o,.12,b,false))}else{boxL(g,.06,2.2,.06,MM(0x777777),a,1.1,b,false);const um=new THREE.Mesh(new THREE.ConeGeometry(1.3,.55,8),MM(i?0xe53935:0xf5f5f5));um.position.set(a,2.3,b);g.add(um);boxL(g,.6,.05,.6,MM(0xf6efe2),a,.55,b,false);[-.5,.5].forEach(o=>boxL(g,.3,.36,.3,MM(0x2e86c1),a+o,.18,b,false))}});
    u=Math.max(u,cu+w/2);continue}
   hs(u+w/2,-62.4,-1,w);u+=w}
  // nhà phía sau hai dãy phố (làng xóm)
- for(let u=6;u<630;u+=9+R()*6){if(u>536&&u<558)continue;backHouse(u,-82-R()*20,6+R()*4,8+R()*4);if(R()<.7)backHouse(u+3,-108-R()*25,6+R()*4,8);}
+ for(let u=6;u<712;u+=9+R()*6){if(u>536&&u<558)continue;backHouse(u,-82-R()*20,6+R()*4,8+R()*4);if(R()<.7)backHouse(u+3,-108-R()*25,6+R()*4,8);}
  for(let u=4;u<170;u+=8+R()*5)backHouse(u,30+R()*8,5+R()*3,8);
  for(let u=432;u<538;u+=8+R()*5){backHouse(u,30+R()*8,5+R()*3,8);if(R()<.8)backHouse(u+2,52+R()*14,6,8)}
- for(let u=552;u<634;u+=8+R()*5)backHouse(u,32+R()*10,5+R()*3,8);
+ for(let u=552;u<712;u+=8+R()*5){if(u>612&&u<672)continue;backHouse(u,32+R()*10,5+R()*3,8)}
 
  /* --- Quán Chè Thuế (theo lời sếp) cạnh Mỹ phẩm Đặng Thanh Tâm, trước khu cục thuế cũ --- */
  const QG=cOf(270);
@@ -2758,7 +2758,7 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
   boxL(g,.32,.35,1.5,MM(pick([0xc62828,0x212121,0x1565c0,0xeeeeee,0x6d4c41])),0,.62,0);[-.6,.6].forEach(z=>{const w=new THREE.Mesh(new THREE.CylinderGeometry(.28,.28,.1,12),MM(0x222222));w.rotation.z=Math.PI/2;w.position.set(0,.28,z);g.add(w)});
   boxL(g,.5,.05,.05,MM(0x555555),0,1.05,.62,false);const rd=npc({par:g,hat:'cap',sex:R()<.5?'nu':'nam',top:pick([0x2a62b8,0xffffff,0xc62828,0x37474f])});rd.position.set(0,0,-.1);seat(rd,.8,0);rd.userData.legL.rotation.x=rd.userData.legR.rotation.x=-1.1;
   const helm=new THREE.Mesh(new THREE.SphereGeometry(.15,8,6,0,Math.PI*2,0,Math.PI/2),MM(pick([0xffffff,0xfdd835,0xe53935])));helm.position.y=1.82;g.add(helm);
-  BIKES.push({g,dir,u:-100+R()*740,sp:8+R()*5,lane:dir>0?2.2:-2.2})}
+  BIKES.push({g,dir,u:-100+R()*820,sp:8+R()*5,lane:dir>0?2.2:-2.2})}
  function bikeAt(b){if(b.u<0){b.g.position.set(OX-b.u,0,OZ-b.lane);b.g.rotation.y=b.dir>0?-Math.PI/2:Math.PI/2}else{const[x,z]=W(b.u,b.lane);b.g.position.set(x,0,z);b.g.rotation.y=(b.dir>0?-Math.PI/2:Math.PI/2)-TH}}
 
  /* --- CẦU NAM AM: cầu bê tông thấp, lan can sơn xanh, khung đèn trang trí đầu cầu phía Bắc (ảnh đường phố Google) --- */
@@ -2774,9 +2774,51 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
   act(550,-23,4,'Đứng trên cầu Nam Am ngắm kênh',()=>toast('Kênh chảy hiền hoà dưới chân cầu Nam Am, hai bờ kè đá, dừa nghiêng bóng. Bên kia cầu là Chè Nhớ Café.'))}
  flatL(cOf(550),546,554,-120,-62.4,asp,.03);mapR('#6f6b66',546,554,-120,-62.4);
  nameW('Quốc lộ 37','về Vĩnh Bảo ← · → cầu Nam Am',120,4.5,0,.8);nameW('Kênh','',200,3,-24,.8);
- // cuối đoạn đã dựng
- {const g=cOf(630);boxL(g,.15,1.2,.15,MM(0xd32f2f),636,.6,-4,false);boxL(g,.15,1.2,.15,MM(0xd32f2f),636,.6,4,false);boxL(g,.1,.3,8.4,MM(0xffffff),636,1.05,0,false);
-  tagW('Đoạn sau chưa dựng',636,2.2,0,.42);act(632,0,4,'Đạp xe quay về cổng trường',()=>{pos.set(-7.85,1.6,24);yaw=Math.PI;riding=true;toast('Đạp xe ngược QL37 về… đã tới cổng trường')})}
+ /* --- BỆNH VIỆN ĐA KHOA NAM AM (đợt 12) ---
+    Vị trí đo trên ảnh vệ tinh Google Maps xem 15/11/2026: nằm phía NAM QL37, cùng bên với Bưu điện Nam Am (u 564) và Thành Vũ Mobile (u 586),
+    cách Bưu điện khoảng 75 m về phía Đông → u ≈ 640 (DOT11 ghi u≈671 là tính từ toạ độ, lệch ~30 m so với ảnh nên đã sửa).
+    Ảnh vệ tinh thấy: toà nhà chữ U mái ngói đỏ, sân trước có cây, tường rào sát vỉa hè. Cổng, chi tiết sân, xe cấp cứu, chòi bảo vệ là MINH HOẠ (chưa có ảnh đường phố). */
+ {const g=cOf(642),U0=628,U1=656,cream=MM(0xf0e2b8),wallW=MM(0xe9dcc0),iron=MM(0x37474f),redR=MM(0xa6402e),glass=MM(0x6fa3b8);
+  flatL(g,U0,U1,8.6,30,MM(0xc9c3b6),.045);mapR('#c9c3b6',U0,U1,8.6,30);zone(U0+.4,U1-.4,8.6,29.4);
+  const fence=(a,b)=>{boxL(g,b-a,.9,.24,wallW,(a+b)/2,.45,9.1,false);for(let k=a+.4;k<b;k+=.45)boxL(g,.04,1.0,.04,iron,k,1.4,9.1,false);boxL(g,b-a,.05,.06,iron,(a+b)/2,1.95,9.1,false);solidL(a,b,8.95,9.25)};
+  fence(U0,639.4);fence(644.6,U1);
+  [U0,U1].forEach(u=>{boxL(g,.24,2.2,40,wallW,u,1.1,29,false);solidL(u-.12,u+.12,9,49)});
+  boxL(g,U1-U0,2.2,.24,wallW,642,1.1,49,false);solidL(U0,U1,48.9,49.1);
+  [639.2,644.8].forEach(u=>{boxL(g,.7,3.4,.7,cream,u,1.7,9.1);solidL(u-.35,u+.35,8.75,9.45)});
+  boxL(g,6.4,.8,.7,cream,642,3.55,9.1);
+  const sgT=ctex(512,96,(c,w,h)=>{c.fillStyle='#1b5e20';c.fillRect(0,0,w,h);c.strokeStyle='#fff';c.lineWidth=4;c.strokeRect(5,5,w-10,h-10);c.fillStyle='#fff';c.font='700 34px sans-serif';c.textAlign='center';c.fillText('BỆNH VIỆN ĐA KHOA NAM AM',w/2,60)});
+  const sg=new THREE.Mesh(new THREE.PlaneGeometry(6.2,.75),new THREE.MeshStandardMaterial({map:sgT,roughness:.8}));sg.rotation.y=Math.PI;sg.position.set(642,3.55,8.68);g.add(sg);
+  const win=(u,y,s0,ry)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(1.1,1.3),glass);m.position.set(u,y,s0);m.rotation.y=ry;g.add(m)};
+  const roofOf=(a,b,s0,s1,H,h)=>{const cg=new THREE.ConeGeometry(1,1,4);cg.rotateY(Math.PI/4);const m=new THREE.Mesh(cg,redR);m.scale.set((b-a+1.6)/1.4142,h,(s1-s0+1.6)/1.4142);m.position.set((a+b)/2,H+h/2,(s0+s1)/2);m.castShadow=true;g.add(m)};
+  // toà chính (chữ U): thân sau + hai cánh nhô ra phía đường
+  boxL(g,26,7.2,14,cream,642,3.6,37);solidL(629,655,30,44);roofOf(629,655,30,44,7.2,2.8);
+  boxL(g,6,7.2,12,cream,632,3.6,24);solidL(629,635,18,30);roofOf(629,635,18,30,7.2,2.4);
+  boxL(g,6,7.2,12,cream,652,3.6,24);solidL(649,655,18,30);roofOf(649,655,18,30,7.2,2.4);
+  for(let k=0;k<7;k++){const u=631+k*3.4;win(u,2.2,29.88,Math.PI);win(u,5.3,29.88,Math.PI)}
+  [[632,17.88,Math.PI],[652,17.88,Math.PI]].forEach(([u,s0,ry])=>{[-1.6,1.6].forEach(o=>{win(u+o,2.2,s0,ry);win(u+o,5.3,s0,ry)})});
+  [20.5,24,27.5].forEach(s0=>{[2.2,5.3].forEach(y=>{win(635.05,y,s0,Math.PI/2);win(648.95,y,s0,-Math.PI/2)})});
+  boxL(g,2.6,2.7,.2,MM(0x3e5f73),642,1.35,29.85,false);
+  const crT=ctex(128,128,(c,w,h)=>{c.fillStyle='#fff';c.fillRect(0,0,w,h);c.fillStyle='#d32f2f';c.fillRect(48,14,32,100);c.fillRect(14,48,100,32)});
+  const cr=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.6),new THREE.MeshStandardMaterial({map:crT}));cr.rotation.y=Math.PI;cr.position.set(642,6,29.86);g.add(cr);
+  // cây trong sân, cột cờ, xe cấp cứu, chòi bảo vệ, nhà để xe
+  const tree=(u,s0,h)=>{const t=new THREE.Mesh(new THREE.CylinderGeometry(.18,.28,h,6),MM(0x6b5238));t.position.set(u,h/2,s0);g.add(t);[0,1,2].forEach(i=>{const c=new THREE.Mesh(new THREE.SphereGeometry(1.6-i*.3,8,6),MM(i?0x3f8a3a:0x2f7a33));c.position.set(u+(i-1)*.5,h+.4+i*.9,s0+(i%2?.4:-.3));c.castShadow=true;g.add(c)});solidL(u-.3,u+.3,s0-.3,s0+.3)};
+  tree(634,13,4);tree(650,13,4.4);tree(642,24,3.6);
+  boxL(g,.1,7,.1,MM(0xcfd8dc),642,3.5,16,false);
+  const flT=ctex(96,64,(c,w,h)=>{c.fillStyle='#d32f2f';c.fillRect(0,0,w,h);c.fillStyle='#ffeb3b';c.font='44px sans-serif';c.textAlign='center';c.fillText('★',w/2,46)});
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(1.8,1.2),new THREE.MeshStandardMaterial({map:flT,side:THREE.DoubleSide}));fl.position.set(642.95,6.3,16);fl.rotation.y=Math.PI/2;g.add(fl);
+  boxL(g,4.4,1.5,1.9,MM(0xf5f5f5),646.8,1.3,21);boxL(g,1.7,1.1,1.8,MM(0xb3d4e6),645,1.9,21,false);boxL(g,4.5,.18,1.95,MM(0xd32f2f),646.8,1.1,21,false);boxL(g,.5,.14,.4,MM(0xd32f2f),647.8,2.1,21,false);
+  [[645,.4],[648.6,.4]].forEach(([u,y])=>[-.95,.95].forEach(o=>{const w=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.25,10),MM(0x222222));w.rotation.x=Math.PI/2;w.position.set(u,y,21+o);g.add(w)}));solidL(644.5,649.1,20,22);
+  boxL(g,2.2,2.5,2,MM(0xd9c9a8),631.6,1.25,12.5);boxL(g,2.6,.15,2.4,MM(0x1b5e20),631.6,2.6,12.5,false);solidL(630.4,632.8,11.5,13.5);
+  boxL(g,3.2,.12,2.6,MM(0x6d7b8a),652.6,2.4,12.3,false);[[651.1,11.2],[654.1,11.2],[651.1,13.4],[654.1,13.4]].forEach(([u,s0])=>boxL(g,.1,2.4,.1,MM(0x5a5a5a),u,1.2,s0,false));
+  [651.5,652.6,653.7].forEach(u=>boxL(g,.12,.8,1.5,MM(0x455a64),u,.5,12.4,false));
+  nameW('Bệnh viện Đa khoa Nam Am','theo Google Maps · sân, cổng minh hoạ',642,5.6,6.5,1);
+  tagW('Chòi bảo vệ',631.6,3.3,12.5,.4);tagW('Xe cấp cứu',646.8,2.9,21,.4);
+  act(642,7.5,5,'Vào sân Bệnh viện Nam Am',()=>toast('Sân Bệnh viện Đa khoa Nam Am: toà nhà chữ U mái ngói đỏ, cây bóng mát trong sân. Hình dáng toà nhà theo ảnh vệ tinh; cổng, xe cấp cứu, chòi bảo vệ là minh hoạ.'));
+  DOTS.push([642,9,'r']);mapR('#b35a44',629,655,18,44)}
+
+ // cuối đoạn đã dựng (u 718)
+ {const g=cOf(716);boxL(g,.15,1.2,.15,MM(0xd32f2f),718,.6,-4,false);boxL(g,.15,1.2,.15,MM(0xd32f2f),718,.6,4,false);boxL(g,.1,.3,8.4,MM(0xffffff),718,1.05,0,false);
+  tagW('Đoạn sau chưa dựng',718,2.2,0,.42);act(714,0,4,'Đạp xe quay về cổng trường',()=>{pos.set(-7.85,1.6,24);yaw=Math.PI;riding=true;toast('Đạp xe ngược QL37 về… đã tới cổng trường')})}
 
  /* --- chạy mỗi khung hình --- */
  let wasIn=false,infoT=99;
@@ -2790,12 +2832,12 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
     if(u.wait>0){u.wait-=dt;u.legL.rotation.x=u.legR.rotation.x=0;continue}
     const sp=u.spd*dt;p.position.x+=du/d*sp;p.position.z+=ds/d*sp;p.rotation.y=Math.atan2(du,ds);u.ph+=dt*u.spd*6;const sw=Math.sin(u.ph)*.45;u.legL.rotation.x=sw;u.legR.rotation.x=-sw;u.armL.rotation.x=-sw*.7;u.armR.rotation.x=sw*.7}}
   if(CH[2].g.visible)animStat(ST4,dt);
-  for(const b of BIKES){b.u+=b.dir*b.sp*dt;if(b.u>650)b.u=-100;if(b.u<-100)b.u=650;bikeAt(b);b.g.visible=Math.hypot(b.g.position.x-cam.position.x,b.g.position.z-cam.position.z)<300}
+  for(const b of BIKES){b.u+=b.dir*b.sp*dt;if(b.u>720)b.u=-100;if(b.u<-100)b.u=720;bikeAt(b);b.g.visible=Math.hypot(b.g.position.x-cam.position.x,b.g.position.z-cam.position.z)<300}
   if(candy&&(candyT-=dt)<0){candy.parent&&candy.parent.remove(candy);candyT=0}});
  applyMarket();
 
  /* --- vùng đi được, va chạm --- */
- window.__in4b=(x,z)=>{const[u,s]=L(x,z);return u>-1&&u<650&&s>-150&&s<170};
+ window.__in4b=(x,z)=>{const[u,s]=L(x,z);return u>-1&&u<730&&s>-150&&s<170};
  window.__hit4b=(x,z)=>{const[u,s]=L(x,z),r=.35;if(!Z4.some(b=>u>b[0]+r&&u<b[1]-r&&s>b[2]+r&&s<b[3]-r))return true;for(const b of S4)if(u>b[0]-r&&u<b[1]+r&&s>b[2]-r&&s<b[3]+r)return true;return false};
  window.__L4=L;window.__W4=W;
 
@@ -2804,11 +2846,11 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
   MAP4.forEach(r=>poly(...r));
   for(const [u,s,t] of DOTS){const[x,z]=W(u,s),a=U(x),b=V(z);if(a<-8||a>mini.width+8||b<-8||b>mini.height+8)continue;mg.fillStyle=t==='h'?'#8e44ad':t==='r'?'#1d6fa5':'#8d6e63';mg.beginPath();mg.arc(a,b,t==='m'?4.5:6.5,0,7);mg.fill();if(t!=='m'){mg.strokeStyle='#fff';mg.lineWidth=2.5;mg.stroke()}}
   const lb=(t,u,s)=>{const[x,z]=W(u,s),a=U(x),b=V(z);if(a>-40&&a<mini.width+40&&b>-10&&b<mini.height+10)label(t,a,b)};
-  lb('Chợ Nam Am',295,126);lb('Chè Thuế',270,22);lb('Cầu Nam Am',550,-48);lb('QL37',90,-1);lb('Kênh',420,-22)};
+  lb('Bệnh viện Nam Am',642,48);lb('Chợ Nam Am',295,126);lb('Chè Thuế',270,22);lb('Cầu Nam Am',550,-48);lb('QL37',90,-1);lb('Kênh',420,-22)};
 
  /* --- nút "Đi tới…" --- */
  const gw=(n,u,s,yw)=>{const[x,z]=W(u,s);GOTO.push([n,x,z,yw])};
- gw('Quán Chè Thuế (cạnh Mỹ phẩm Đặng Thanh Tâm)',272,5,-TH);gw('Chợ Nam Am',295,71,-TH);gw('Cầu Nam Am',550,2,Math.PI-TH);
+ gw('Quán Chè Thuế (cạnh Mỹ phẩm Đặng Thanh Tâm)',272,5,-TH);gw('Bệnh viện Đa khoa Nam Am (cổng)',642,4,-TH);gw('Chợ Nam Am',295,71,-TH);gw('Cầu Nam Am',550,2,Math.PI-TH);
  $('#goList').innerHTML=GOTO.map((g,i)=>`<button type="button" data-i="${i}">${g[0]}</button>`).join('');
 }}
 
@@ -3095,7 +3137,7 @@ function buildDot8(){
  const q8=s=>mBox8.querySelector(s);
  q8('[data-x]').onclick=()=>mBox8.hidden=true;mBox8.onclick=e=>{if(e.target===mBox8)mBox8.hidden=true};
  let curShop=null;const shopTabs=[];window.__shopTabs=shopTabs;
- const SHOPCHAT={'quan-bia':'Quán bia hơi','quan-mori':'Cafe Mori','quan-che':'Quán chè','quan-net':'Quán net','quan-dem':'Ăn đêm Cầu Nam Am','quan-doi':'Bún chả Đầu Cầu'};
+ const SHOPCHAT={'quan-bia':'Quán bia hơi','quan-mori':'Cafe Mori','quan-che':'Quán chè','quan-net':'Quán net','quan-dem':'Ăn đêm Cầu Nam Am','quan-doi':'Bún chả Đầu Cầu','quan-vien1':'Quán nước Cổng Viện','quan-vien2':'Cháo – bún Cổng Viện'};
  window.__shopChat=(key)=>{const t=SHOPCHAT[key];if(!t)return;if(!shopTabs.some(a=>a[0]===key))shopTabs.push([key,t]);if(!KEY){toast('Bạn bấm "Vào trường" và nhập tên trước, rồi mới vào nhóm chat quán nhé.');return}mBox8.hidden=true;chatRoom=key;openChat()};
  function sitAt(inf){if(!inf.seats.length)return null;const s=inf.seats[Math.floor(Math.random()*inf.seats.length)];
   window.__seat({x:s.x,z:s.z,yaw:s.yaw,h:.3});yaw=s.yaw+Math.PI+.6;pitch=-.3;return s}
@@ -3271,6 +3313,19 @@ function buildDot8(){
   [[-3,-3],[0,-3.2],[3,-3],[-3,-6],[3,-6]].forEach(([tx,tz])=>{table(g,tx,tz,0xdfe8ee,0,false);[[-.72,0,Math.PI/2],[.72,0,-Math.PI/2]].forEach(([a,b,r])=>{chair(g,tx+a,tz+b,r,0xc62828);seatsL.push({lx:tx+a,lz:tz,tlx:tx,tlz:tz})})});
   inf.seats=seatsL.map(q=>{const a=W8(g,q.lx,q.lz),b=W8(g,q.tlx,q.tlz);return{x:a.x,z:a.z,tx:b.x,tz:b.z,yaw:Math.atan2(b.x-a.x,b.z-a.z)}});
   shopAct(inf,0,-4.5,4.2,'Bún chả · gọi món · chat quán');MAP_SHOPS.push([BX,BZ,'a',0])}
+
+ /* hai quán cạnh cổng Bệnh viện Nam Am (đợt 12, TÊN + MÓN + GIÁ + VỊ TRÍ là MINH HOẠ) */
+ {const mk=(key,uc,name,label,sub,neon,neonBg,wall,awn,roofCol,title,desc,menu,tableCol,chairCol)=>{
+   const [X,Z]=_W(uc,9.2);const inf=shell({key,x:X,z:Z,rot:-_TH,w:8.5,d:9,door:4.5,name,label,sub,neon,neonBg,wall,dado:0x6d4c41,floor:MC(0x9a9a94),awn,roofCol});
+   const g=inf.g;inf.menuTitle=title;inf.menuDesc=desc;inf.menu=menu;inf.tableY=.55;const seatsL=[];
+   [[-2.2,-3.2],[1.4,-3.2],[-2.2,-6.2],[1.4,-6.2]].forEach(([tx,tz],i)=>{table(g,tx,tz,tableCol,0,false);[[-.72,0,Math.PI/2],[.72,0,-Math.PI/2]].forEach(([a,b,r])=>{chair(g,tx+a,tz+b,r,chairCol);seatsL.push({lx:tx+a,lz:tz,tlx:tx,tlz:tz})});
+    if(i===0||i===3)NPC8(g,tx-.72,tz,tx,tz,pick8(SHIRTS),pick8(PANTS),true)});
+   inf.seats=seatsL.map(q=>{const a=W8(g,q.lx,q.lz),b=W8(g,q.tlx,q.tlz);return{x:a.x,z:a.z,tx:b.x,tz:b.z,yaw:Math.atan2(b.x-a.x,b.z-a.z)}});
+   shopAct(inf,0,-4.5,4.2,label+' · gọi món · chat quán');MAP_SHOPS.push([X,Z,'a',0]);return inf};
+  mk('quan-vien1',619.25,'QUÁN NƯỚC CỔNG VIỆN','Quán nước Cổng Viện','trà đá · nước mía · sữa chua (minh hoạ)','#4dd0e1','#10222a',0xf1e2c4,['#00838f','#fff'],0x8d4a32,'Cho cốc nước mát nhé!','Quán nước ngay cạnh cổng bệnh viện, người nhà bệnh nhân hay ghé ngồi nghỉ. (món và giá là minh hoạ)',
+   [['Trà đá','một cốc',3,'glass',0xd9b66a,null],['Nước mía','ép tươi',10,'glass',0xcfd98a,null],['Sữa chua','hũ nhỏ',8,'plate',0xfff3e0,0x90caf9],['Nước chanh','đá lạnh',10,'glass',0xf3e57a,null]],0xdfe8ee,0x00838f);
+  mk('quan-vien2',665.75,'CHÁO – BÚN CỔNG VIỆN','Cháo – bún Cổng Viện','cháo · bún · phở sáng (minh hoạ)','#ffb74d','#2a1a10',0xf3e6c0,['#c62828','#fff'],0x8d4a32,'Cho bát cháo nóng nhé!','Quán cháo bún cạnh cổng bệnh viện, mở sớm cho người nhà đi viện. (món và giá là minh hoạ)',
+   [['Cháo sườn','nóng hổi, quẩy',25,'bowl',0xe8dcc0,0xc99a5b],['Bún riêu','cua, đậu, cà chua',35,'bowl',0xe8c27a,0xc0392b],['Phở gà','nước trong',35,'bowl',0xe8c27a,0x8b5a2b],['Trà đá','một cốc',3,'glass',0xd9b66a,null]],0xdfe8ee,0xc62828)}
 
  /* ===================== 4. CẦU LÝ HỌC + kéo dài đường, sông, phố ===================== */
  {const road=MC(0x6f6b66),water=new THREE.MeshStandardMaterial({color:0x4f7a6a,roughness:.25,metalness:.1});

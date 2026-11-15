@@ -177,3 +177,10 @@ Sếp yêu cầu giao diện KHÁC trang THPT Vĩnh Bảo (thpt-vinh-bao.tranngo
 - Nhà nước (nước uống sạch) ở (36.5,-27); nhà vệ sinh Đông (49,-27), Tây (-43,-27) — vị trí đoán theo chỗ sếp đứng trong ảnh, chưa kiểm ảnh vệ tinh.
 - Dãy phòng thầy cô (HT, PHT, văn thư, kế toán, họp chung, nghỉ GV, giám thị) x -62..-36, z -58; dãy chức năng (y tế, Đoàn Đội, kho thể dục, căng tin) x -35..-20; thư viện + truyền thống (-38, 9.8) sau hàng quán cổng. Tất cả là MINH HOẠ (đoán), nhìn qua cửa kính, chưa đi vào trong.
 - Sân vận động phía sau: sọc cỏ, vạch sân, đường chạy 4 làn, hố nhảy xa, khán đài, cờ, đèn sân, bảng điểm, lều, vận động viên chạy.
+
+## Đợt 12b (nhánh xem-thu = den-dep-hon + lua-trai + bệnh viện; CHƯA gộp main)
+- Bệnh viện Đa khoa Nam Am: đo trên ảnh vệ tinh Google Maps 15/11/2026 thì nằm phía NAM QL37 ở u≈640 (không phải u 671 như DOT11 tính từ toạ độ; lệch ~30 m). Toà chữ U mái ngói đỏ, sân trước có cây theo ảnh vệ tinh; cổng, biển, xe cấp cứu, chòi bảo vệ, nhà để xe là MINH HOẠ. Chưa có ảnh đường phố/ảnh cổng thật.
+- Đường QL37 + kênh + bờ bắc dựng tiếp từ u 640 tới u 718 (rào chắn "Đoạn sau chưa dựng" dời tới u 718).
+- 2 quán cạnh cổng (MINH HOẠ): "Quán nước Cổng Viện" (u 619) và "Cháo – bún Cổng Viện" (u 666), vào trong được, gọi món, có nhóm chat (máy chủ cho phép quan-vien1, quan-vien2).
+- Nút "Đi tới… Bệnh viện Đa khoa Nam Am (cổng)"; bản đồ nhỏ có nhãn.
+- Đã chạy thử máy (Chrome không đầu, giờ trưa): không lỗi script; va chạm cổng/tường rào/toà nhà/cây đúng. CHƯA thử trên điện thoại, CHƯA thử trên mạng thật.
