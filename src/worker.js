@@ -5,6 +5,12 @@
 // và giữ các kết nối trực tiếp (ai đang online).
 
 const DAY = 86400000;
+// lửa trại sân trường: 12 cụm trại, 6 kiểu trang trí; nhả trại sau 15 phút không hoạt động; nhạc chỉ chọn trong danh sách MV chính chủ
+const CAMPS = 12, CAMP_STYLES = 6, CAMP_IDLE = 15 * 60000;
+const MUSIC = {
+  'ArmDp-zijuc': 'NewJeans – Super Shy', 'ekr2nIex040': 'ROSÉ & Bruno Mars – APT.', 'gQlMMD8auMs': 'BLACKPINK – Pink Venom',
+  'abPmZCZZrFA': 'Sơn Tùng M-TP – Đừng làm trái tim anh đau', 'OiC1rgCPmUQ': 'Dua Lipa – Dance The Night', 'JGwWNGJdvx8': 'Ed Sheeran – Shape of You'
+};
 const CHAT_KEEP = 30 * DAY;
 const MAX_NOTE = 200, MAX_MSG = 300;
 const MAX_AVATAR = 80 * 1024;      // ảnh đại diện sau khi trang tự thu nhỏ
@@ -109,11 +115,17 @@ export class School extends DurableObject {
       CREATE TABLE IF NOT EXISTS meets(id INTEGER PRIMARY KEY AUTOINCREMENT, room TEXT, title TEXT, at INTEGER, uid TEXT, ts INTEGER, done INTEGER DEFAULT 0);
       CREATE INDEX IF NOT EXISTS meets_at ON meets(done, at);
       CREATE TABLE IF NOT EXISTS sigs(uid TEXT PRIMARY KEY, type TEXT, data BLOB, ts INTEGER);
+      CREATE TABLE IF NOT EXISTS camps(id INTEGER PRIMARY KEY, uid TEXT, style INTEGER, ts INTEGER, seen INTEGER);
       CREATE TABLE IF NOT EXISTS hits(k TEXT, ts INTEGER);
       CREATE INDEX IF NOT EXISTS hits_k ON hits(k, ts);
     `);
   }
   row(q, ...a) { const r = this.sql.exec(q, ...a).toArray(); return r[0] || null; }
+  campList() {
+    this.sql.exec('DELETE FROM camps WHERE seen<?', Date.now() - CAMP_IDLE);
+    return this.all('SELECT c.id,c.uid,c.style,c.ts,u.name FROM camps c LEFT JOIN users u ON u.id=c.uid ORDER BY c.id');
+  }
+  campMusic() { const r = this.row("SELECT v FROM meta WHERE k='campmusic'"); try { return r ? JSON.parse(r.v) : null; } catch (e) { return null; } }
   all(q, ...a) { return this.sql.exec(q, ...a).toArray(); }
   // giới hạn số lần làm một việc trong một khoảng thời gian (chống phá)
   limit(k, n, ms) {
@@ -203,6 +215,7 @@ export class School extends DurableObject {
           const people = this.all("SELECT lop,khoa,COUNT(*) n FROM users WHERE banned=0 AND role='hs' AND lop<>'' GROUP BY lop,khoa");
           return json({ claims: this.roomClaims(), people });
         }
+        if (path === '/camps') return json({ camps: this.campList(), music: this.campMusic(), now: Date.now() });
         if (path === '/solop') {
           const people = this.all("SELECT u.id,u.name,u.lop,u.khoa,u.role,u.av,(SELECT COUNT(*) FROM notes n WHERE n.uid=u.id) nc FROM users u WHERE u.banned=0 AND u.khoa<>'' ORDER BY u.name");
           return json({ people });
@@ -358,6 +371,32 @@ export class School extends DurableObject {
         this.sql.exec('INSERT INTO rclaims(room,khoa,lop,uid,ts) VALUES(?,?,?,?,?)', room, khoa, lop, me.id, Date.now());
         this.broadcast({ t: 'rooms' }); return json({ ok: true });
       }
+      // cụm trại lửa trại: ai đến trước nhận trước, mỗi người một cụm
+      if (path === '/camps/claim' || path === '/camps/style' || path === '/camps/leave' || path === '/camps/ping') {
+        const list = this.campList(); const mine = list.find(c => c.uid === me.id);
+        if (path === '/camps/leave') { if (mine) { this.sql.exec('DELETE FROM camps WHERE id=?', mine.id); this.broadcast({ t: 'camps' }); } return json({ ok: true }); }
+        if (path === '/camps/ping') { if (mine) this.sql.exec('UPDATE camps SET seen=? WHERE id=?', Date.now(), mine.id); return json({ ok: true, held: !!mine }); }
+        const style = Number(b.style); if (!(style >= 0 && style < CAMP_STYLES)) return json({ error: 'Kiểu trang trí không đúng.' }, 400);
+        if (path === '/camps/style') {
+          if (!mine) return json({ error: 'Bạn chưa giữ cụm trại nào (có thể đã hết 15 phút không hoạt động).' }, 409);
+          this.sql.exec('UPDATE camps SET style=?,seen=? WHERE id=?', style, Date.now(), mine.id); this.broadcast({ t: 'camps' }); return json({ ok: true });
+        }
+        const id = Number(b.id); if (!(id >= 0 && id < CAMPS)) return json({ error: 'Cụm trại không đúng.' }, 400);
+        const cur = list.find(c => c.id === id);
+        if (cur && cur.uid === me.id) { this.sql.exec('UPDATE camps SET style=?,seen=? WHERE id=?', style, Date.now(), id); this.broadcast({ t: 'camps' }); return json({ ok: true }); }
+        if (cur) return json({ error: `Cụm này ${cur.name || 'một bạn'} nhận trước rồi. Bạn chọn cụm khác nhé.` }, 409);
+        if (mine) return json({ error: 'Bạn đang giữ một cụm trại rồi. Bấm "Trả trại" trước nếu muốn đổi chỗ.' }, 409);
+        const t = Date.now(); this.sql.exec('INSERT INTO camps(id,uid,style,ts,seen) VALUES(?,?,?,?,?)', id, me.id, style, t, t);
+        this.broadcast({ t: 'camps' }); return json({ ok: true });
+      }
+      // nhạc lửa trại: ai chọn thì bài đó phát cho mọi người gần lửa; mỗi người chọn 1 bài / 5 phút
+      if (path === '/music/pick') {
+        const vid = String(b.vid || ''); if (!MUSIC[vid]) return json({ error: 'Bài này không có trong danh sách.' }, 400);
+        if (!this.limit('mu:' + me.id, 1, 300000)) return json({ error: 'Bạn vừa chọn bài rồi, 5 phút sau chọn tiếp nhé (để mọi người cùng được chọn).' }, 429);
+        const m = { vid, title: MUSIC[vid], uid: me.id, name: me.name, ts: Date.now() };
+        this.sql.exec("INSERT INTO meta(k,v) VALUES('campmusic',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", JSON.stringify(m));
+        this.broadcast({ t: 'music' }); return json({ ok: true });
+      }
       if (path === '/meets') {
         const room = String(b.room || ''); if (!okRoom(room)) return json({ error: 'Bạn chọn khóa nhé.' }, 400);
         const title = clean(b.title, 60) || 'Gặp nhau ở sân trường';
@@ -453,6 +492,13 @@ export class School extends DurableObject {
         const lop = normLop(b.lop); if (!lop) return json({ error: 'Thiếu tên lớp.' }, 400);
         if (this.row('SELECT room FROM rclaims WHERE lop=? AND khoa=? AND room<>?', lop, String(b.khoa), String(b.room))) return json({ error: 'Lớp này của khóa này đã có phòng khác.' }, 409);
         this.sql.exec('UPDATE rclaims SET lop=? WHERE room=? AND khoa=?', lop, String(b.room), String(b.khoa)); this.broadcast({ t: 'rooms' }); return json({ ok: true });
+      }
+      case 'campFree': this.sql.exec('DELETE FROM camps WHERE id=?', Number(b.id)); this.broadcast({ t: 'camps' }); return json({ ok: true });
+      case 'musicSet': {
+        const vid = String(b.vid || '');
+        if (!vid) this.sql.exec("DELETE FROM meta WHERE k='campmusic'");
+        else { if (!MUSIC[vid]) return json({ error: 'Bài không có trong danh sách.' }, 400); this.sql.exec("INSERT INTO meta(k,v) VALUES('campmusic',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", JSON.stringify({ vid, title: MUSIC[vid], uid: '', name: 'Người lập trang', ts: Date.now() })); }
+        this.broadcast({ t: 'music' }); return json({ ok: true });
       }
       case 'unban': this.sql.exec('UPDATE users SET banned=0 WHERE id=?', String(b.id)); return json({ ok: true });
       case 'resetPass': {
