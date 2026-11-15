@@ -422,7 +422,7 @@ export class School extends DurableObject {
       case 'list': {
         const notes = this.all("SELECT n.*,u.name,u.lop,u.khoa,u.role FROM notes n JOIN users u ON u.id=n.uid WHERE (?='' OR n.text LIKE ? OR u.name LIKE ?) ORDER BY n.id DESC LIMIT 200", q, like, like).map(r => this.noteOut(r));
         const msgs = this.all("SELECT m.*,u.name,u.lop,u.khoa,u.role FROM msgs m JOIN users u ON u.id=m.uid WHERE (?='' OR m.text LIKE ? OR u.name LIKE ?) ORDER BY m.id DESC LIMIT 200", q, like, like).map(r => this.msgOut(r));
-        const users = this.all("SELECT id,name,lop,khoa,role,banned,av,ts,(SELECT COUNT(*) FROM notes n WHERE n.uid=users.id) nc FROM users WHERE (?='' OR name LIKE ? OR lop LIKE ?) ORDER BY ts DESC LIMIT 300", q, like, like);
+        const users = this.all("SELECT id,name,lop,khoa,role,sex,season,look,banned,av,ts,(SELECT COUNT(*) FROM notes n WHERE n.uid=users.id) nc,(SELECT COUNT(*) FROM msgs m WHERE m.uid=users.id) mc,(SELECT COUNT(*) FROM photos p WHERE p.uid=users.id) pc FROM users WHERE (?='' OR name LIKE ? OR lop LIKE ?) ORDER BY ts DESC LIMIT 300", q, like, like);
         const photos = this.all("SELECT p.id,p.uid,p.kind,p.lop,p.khoa,p.cap,p.ts,p.ok,u.name FROM photos p JOIN users u ON u.id=p.uid ORDER BY p.ok ASC, p.id DESC LIMIT 200").map(r => this.photoOut(r));
         const pending = this.row('SELECT COUNT(*) c FROM photos WHERE ok=0').c;
         const sigs = this.all('SELECT uid,ts FROM sigs');
