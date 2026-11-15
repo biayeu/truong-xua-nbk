@@ -3314,12 +3314,14 @@ function buildDot6(){
   net:['Nạp cho anh năm chục nghìn.','Em ơi, nạp thẻ hai chục vào máy số bảy.','Bên trái, bên trái, đánh nó đi!','Vào đây đi, đủ năm người rồi!','Cho anh gói mì tôm trứng.']};
  // mỗi nơi gồm vài "dải"; mỗi dải có danh sách bản thu, phát ngẫu nhiên, chuyển mượt
  const MIX={
-  duong:[{u:['d1','d2','d3','d4','d5','d6'],v:1}],
-  san:[{u:['s1','s2','s3','s4','s5'],v:1},{u:['s6','s7'],v:.55}],
+  duong:[{u:['d1','d2','d3','d4','d5','d6','h4','h5','h6'],v:1},{u:['h7','m1'],v:.4}],
+  san:[{u:['s2','s2','s2','s1','s3','s4'],v:1},{u:['s6','s7'],v:.45}],
   bia:[{u:['b1'],v:1},{u:['b2'],v:.7}],
   cafe:[{u:['c1','c2','c3'],v:1},{u:['b1'],v:.35}],
   net:[{u:['n1','n5'],v:.8},{u:['s7','s6'],v:.8},{u:['n3','n4'],v:.9}],
-  ve:[{u:['ve'],v:1}]};
+  ve:[{u:['h2','h7'],v:1}],
+  den:[{u:['h3'],v:1}],
+  dem:[{u:['h1','h8'],v:1}]};
  let L=null,zone='duong',ready=false,lastSay=0;const bufs={};
  const rnd=(a,b)=>a+Math.random()*(b-a),pick=a=>a[(Math.random()*a.length)|0];
  function getBuf(id){if(!bufs[id])bufs[id]=fetch('/am/'+id+'.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>b?new Promise((ok,no)=>{const p=AC.decodeAudioData(b,ok,no);if(p&&p.catch)p.catch(no)}):null).catch(()=>{bufs[id]=null;return null});return bufs[id]}
@@ -3336,7 +3338,7 @@ function buildDot6(){
  function build(){
   if(L||!AC||!master)return;
   const comp=AC.createDynamicsCompressor();comp.threshold.value=-22;comp.ratio.value=3;comp.connect(master);
-  L={};['duong','san','bia','cafe','net','ve'].forEach(k=>{const g=AC.createGain();g.gain.value=0;g.connect(comp);L[k]={g,tr:MIX[k].map(m=>({u:m.u,v:m.v,out:g,on:false,running:false}))}});
+  L={};['duong','san','bia','cafe','net','ve','den','dem'].forEach(k=>{const g=AC.createGain();g.gain.value=0;g.connect(comp);L[k]={g,tr:MIX[k].map(m=>({u:m.u,v:m.v,out:g,on:false,running:false}))}});
   ready=true}
  function setActive(k,on){if(!L)return;L[k].tr.forEach(T=>{T.on=on;if(on&&!T.running){T.running=true;seg(T)}})}
  function zoneNow(){
@@ -3359,7 +3361,9 @@ function buildDot6(){
   const T={
    duong:z==='duong'?1:z==='san'?.25:z==='cao'?.4:z==='den'?.3:z==='lop'?.05:.08,
    san:z==='san'?(.4+.6*busy):z==='lop'?.2*busy:z==='duong'&&pos.z<30&&pos.x>-70&&pos.x<90?.25*busy:0,
-   bia:pb,cafe:z==='cafe'?1:0,net:pn};
+   bia:pb,cafe:z==='cafe'?1:0,net:pn,
+   den:z==='den'?.9:0,
+   dem:((new Date(Date.now()+7*3600000).getUTCHours()>=19||new Date(Date.now()+7*3600000).getUTCHours()<5)&&(z==='duong'||z==='san'||z==='den'))?.7:0};
   const veV=(typeof veVol==='function'?veVol():1),ve=(z==='duong'||z==='san'||z==='den')&&!(new Date(Date.now()+7*3600000).getUTCHours()>=19||new Date(Date.now()+7*3600000).getUTCHours()<5)?.55*veV:0;
   const gt=AC.currentTime;
   for(const k in T){const v=soundOn?T[k]:0;L[k].g.gain.setTargetAtTime(v,gt,.8);setActive(k,v>.04)}
