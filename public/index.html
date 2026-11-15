@@ -3420,15 +3420,15 @@ function buildDot9(){
   let gph=0,gCool=0,gSay=null;
   // 5 cảnh
   const SCN=[
-   {name:'Sân trường · giành sân bóng',desc:'Hai bạn nam cãi nhau chuyện ai được đá trước',x:24,z:-10,ang:0,A:{sex:'nam'},B:{sex:'nam'},W:[{sex:'nam'},{sex:'nam'}],ball:1,
+   {name:'Sân trường · giành sân bóng',desc:'Hai bạn nam cãi nhau chuyện ai được đá trước',x:24,z:-10,ang:0,A:{sex:'nam'},B:{sex:'nam'},W:[{sex:'nam'},{sex:'nam'},{sex:'nam'},{sex:'nu'}],ball:1,
     L:[[.5,'A','Tao đá trước mà!'],[3,'B','Mày chơi ăn gian!'],[5.5,'A','Ra chỗ khác mà đá!'],[7.8,'B','Mày đẩy tao à?!'],[10,'W','Thôi đừng đánh nhau, thầy ra bây giờ!'],[14.5,'G','Thôi! Các em làm cái gì thế hả?'],[18,'G','Về lớp ngay, không bác báo thầy cô đấy!'],[21,'A','Dạ… cháu xin lỗi bác ạ.'],[22.5,'B','Cháu cũng xin lỗi ạ.']]},
-   {name:'Hành lang · mượn vở không trả',desc:'Hai bạn nữ giằng co cuốn vở',x:-22,z:2.5,ang:1.2,A:{sex:'nu'},B:{sex:'nu'},W:[{sex:'nu'}],book:1,
+   {name:'Hành lang · mượn vở không trả',desc:'Hai bạn nữ giằng co cuốn vở',x:-22,z:2.5,ang:1.2,A:{sex:'nu'},B:{sex:'nu'},W:[{sex:'nu'},{sex:'nu'},{sex:'nam'}],book:1,
     L:[[.5,'A','Trả vở cho tao!'],[3,'B','Tao chép chưa xong mà!'],[5.5,'A','Mày mượn bốn hôm rồi đấy!'],[8,'B','Buông ra, rách bây giờ!'],[10.5,'W','Hai bà thôi đi, mọi người nhìn kìa!'],[14.5,'G','Các em kia, có chuyện gì thế?'],[18,'G','Vở của ai thì trả người đó, rồi vào lớp!'],[21,'B','Dạ, cháu trả bạn ạ.'],[22.5,'A','Cháu cảm ơn bác.']]},
-   {name:'Cổng trường · hai xe va quệt nhau',desc:'Hai bạn đạp xe đâm quệt nhau ngay trước cổng',x:-14,z:15,ang:.5,bike:1,A:{},B:{},W:[{sex:'nam'}],
+   {name:'Cổng trường · hai xe va quệt nhau',desc:'Hai bạn đạp xe đâm quệt nhau ngay trước cổng',x:-14,z:15,ang:.5,bike:1,A:{},B:{},W:[{sex:'nam'},{sex:'nu'},{sex:'nam'}],
     L:[[.5,'A','Đi đứng kiểu gì thế?!'],[3,'B','Mày phanh gấp chứ!'],[5.5,'A','Xước hết xe tao rồi!'],[8,'B','Xin lỗi chưa mà đã quát?!'],[10.5,'W','Thôi, dắt xe vào đi, muộn học rồi!'],[14.5,'G','Ê, sân cổng không phải đường đua đâu!'],[18,'G','Dắt xe vào nhà xe, đừng chắn cổng!'],[21,'A','Dạ, cháu xin lỗi ạ.'],[22.5,'B','Cháu dắt vào ngay ạ.']]},
-   {name:'Cổng phụ · chen hàng bánh mì',desc:'Hai bạn nam xô nhau ở xe bánh mì, rơi cả gói xôi',x:41.6,z:15.6,ang:0,A:{sex:'nam'},B:{sex:'nam'},W:[{sex:'nu'},{sex:'nam'}],xoi:1,
+   {name:'Cổng phụ · chen hàng bánh mì',desc:'Hai bạn nam xô nhau ở xe bánh mì, rơi cả gói xôi',x:41.6,z:15.6,ang:0,A:{sex:'nam'},B:{sex:'nam'},W:[{sex:'nu'},{sex:'nam'},{sex:'nu'}],xoi:1,
     L:[[.5,'A','Ê, chen hàng à?'],[3,'B','Tao đứng đây từ nãy!'],[5.5,'A','Xếp hàng đi chứ!'],[8,'B','Á! Gói xôi của tao rơi rồi!'],[10.5,'W','Cho em hai ổ nhanh lên, sắp trống rồi!'],[14.5,'G','Chen lấn cái gì, xếp hàng cho đàng hoàng!'],[18,'G','Làm rơi thì mua đền bạn, rồi vào lớp!'],[21,'A','Dạ, cháu mua đền bạn ạ.'],[22.5,'B','Thôi, không sao đâu bác.']]},
-   {name:'Nhà xe · dắt nhầm xe',desc:'Hai bạn nam cãi nhau vì dắt nhầm xe, bác bảo vệ ghi sổ',x:54,z:12.5,ang:.8,A:{sex:'nam'},B:{sex:'nam'},W:[{sex:'nu'}],sổ:1,
+   {name:'Nhà xe · dắt nhầm xe',desc:'Hai bạn nam cãi nhau vì dắt nhầm xe, bác bảo vệ ghi sổ',x:54,z:12.5,ang:.8,A:{sex:'nam'},B:{sex:'nam'},W:[{sex:'nu'},{sex:'nam'},{sex:'nam'}],sổ:1,
     L:[[.5,'A','Mày dắt nhầm xe tao rồi!'],[3,'B','Xe này của tao, có dán hình mà!'],[5.5,'A','Xe tao mới đổi chuông đấy!'],[8,'B','Mày có buông ra không?!'],[10.5,'W','Ơ, hình như bạn nhầm xe thật đấy…'],[14.5,'G','Dừng lại! Ai gây chuyện trước?'],[17,'G','Tên gì, lớp nào? Bác ghi sổ báo thầy chủ nhiệm.'],[20.5,'A','Dạ, cháu lớp mười hai A ạ.'],[22.5,'B','Dạ, cháu xin lỗi, nhìn nhầm xe ạ.']]}];
   SCN.forEach(c=>{[c.x,c.z]=free(c.x,c.z);const e=[Math.sin(c.ang),Math.cos(c.ang)];c.e=e;c.n=[-e[1],e[0]];
    c.pa=c.bike?mkB():mkP(Object.assign({},c.A,{aodai:false}));c.pb=c.bike?mkB():mkP(Object.assign({},c.B,{aodai:false}));c.ws=(c.W||[]).map(w=>mkP(w));
@@ -3437,15 +3437,16 @@ function buildDot9(){
    if(c.xoi){c.item=box1(.2,.1,.14,0xf4d27a)}
    const bx=gp0[0]-c.x,bz=gp0[1]-c.z,sg=(bx*c.n[0]+bz*c.n[1])>=0?1:-1;c.gpt=free(c.x+c.n[0]*2.4*sg,c.z+c.n[1]*2.4*sg);
    c.dist=Math.hypot(c.gpt[0]-gp0[0],c.gpt[1]-gp0[1]);c.last=-1});
+  try{SCN.forEach((c,j)=>GOTO.push(['Xích mích học sinh '+(j+1)+': '+c.name.split(' · ')[1]+' (giờ học, 6h30–21h)',c.x-c.n[0]*5,c.z-c.n[1]*5,Math.atan2(c.n[0],c.n[1])]));$('#goList').innerHTML=GOTO.map((g,i)=>`<button type="button" data-i="${i}">${g[0]}</button>`).join('')}catch(_){}
   const sP=(q,x,z,face)=>{q.g.position.set(x,groundAt(x,z,1),z);if(face!=null)q.g.rotation.y=face};
   const arm=(u,l,r)=>{u.armL.rotation.x=l;u.armR.rotation.x=r};
   const say=(g,t)=>bubbleOn(g,t);
-  let curI=-1,toastI=-1;window.__scn=SCN;window.__guard=gd;
+  let curI=-1,toastI=-1;window.__scT=[];window.__scn=SCN;window.__guard=gd;
   anim.push(()=>{
-   const h=hVN(),sch=h>=6.5&&h<17.5,now=Date.now()/1000,idx=Math.floor(now/32)%5,ts=now%32,pn=performance.now(),dtg=Math.min(.05,(pn-(window.__scLast||pn))/1000);window.__scLast=pn;
+   const h=hVN(),sch=h>=6.5&&h<21,now=Date.now()/1000,idx=Math.floor(now/32)%5,ts=now%32,pn=performance.now(),dtg=Math.min(.05,(pn-(window.__scLast||pn))/1000);window.__scLast=pn;
    const sky=pos.y>40,dGate=Math.hypot(gd.position.x-pos.x,gd.position.z-pos.z);
    // chọn cảnh đang diễn
-   SCN.forEach((c,i)=>{const on=sch&&i===idx&&ts<31&&!inRoom&&(sky||Math.hypot(c.x-pos.x,c.z-pos.z)<130);
+   SCN.forEach((c,i)=>{const on=sch&&ts<31&&!inRoom&&(sky||Math.hypot(c.x-pos.x,c.z-pos.z)<130);
     const all=[c.pa,c.pb,...c.ws];all.forEach(q=>q.g.visible=on);if(c.item)c.item.visible=on&&(!c.xoi||ts>=8);
     if(!on){c.last=-1;return}
     if(c.last>ts)c.last=-1;
@@ -3466,14 +3467,14 @@ function buildDot9(){
      if(c.bike){A.g.position.x=ax;}}
     if(ts<24&&!(ts>=7&&ts<14)){U.forEach(u=>{u.legL.rotation.x=0;u.legR.rotation.x=0})}
     // người xem
-    c.ws.forEach((q,i)=>{const sg=i%2?-1:1,wx=cx+n[0]*2.9*sg+e[0]*(i*1.4),wz=cz+n[1]*2.9*sg+e[1]*(i*1.4);
+    c.ws.forEach((q,i)=>{const sg=i%2?-1:1,rr=2.6+(i>>1)*.9,wx=cx+n[0]*rr*sg+e[0]*((i%3-1)*1.5),wz=cz+n[1]*rr*sg+e[1]*((i%3-1)*1.5);
      sP(q,ts<24?wx:wx+(ts-24)*sg*.8*n[0],ts<24?wz:wz+(ts-24)*sg*.8*n[1],Math.atan2(cx-wx,cz-wz));if(ts>=24){const s=Math.sin(ts*7)*.5;q.u.legL.rotation.x=s;q.u.legR.rotation.x=-s}else{q.u.legL.rotation.x=q.u.legR.rotation.x=0;if(!(ts>=7&&ts<14))arm(q.u,.1,.1)}});
     // đồ vật
     if(c.ball)c.item.position.set(cx+n[0]*1.2,.16,cz+n[1]*1.2);
     if(c.book){const k=ts<7?0:ts<14?Math.sin(ts*8)*.35:ts<24?1.2:1.2;c.item.position.set(cx+e[0]*k*(ts<14?1:-1)*0,1.0+ (ts<14?.1:0),cz);c.item.position.x=cx+e[0]*(ts<14?k*.5:0);c.item.position.z=cz+e[1]*(ts<14?k*.5:0);c.item.rotation.y=fa}
     if(c.xoi){const fall=Math.min(1,(ts-8)/.7);c.item.position.set(bx+n[0]*.4,Math.max(.06,1.2-1.14*fall*fall),bz+n[1]*.4)}
     // lời thoại
-    c.L.forEach(([t0,w,tx])=>{if(c.last<t0&&t0<=ts){const q=w==='A'?A:w==='B'?B:w==='W'?c.ws[0]||B:null;if(q)say(q.g,tx);else say(gd,tx)}});
+    c.L.forEach(([t0,w,tx])=>{if(c.last<t0&&t0<=ts){let q=w==='A'?A:w==='B'?B:w==='W'?c.ws[0]||B:null;if(w==='G'&&i!==idx){q=c.ws[0]||B;tx=t0<16?'Thôi thôi, dừng lại đi, có thầy ra kìa!':'Về lớp thôi, muộn học rồi!'}if(q)say(q.g,tx);else say(gd,tx)}});
     c.last=ts;
    });
    // bác bảo vệ
@@ -3490,7 +3491,7 @@ function buildDot9(){
    // chào hỏi khi mình lại gần
    gCool-=dtg;if(gd.visible&&!act&&dd<.5&&dGate<9&&gCool<=0){gCool=28;say(gd,GIDLE[Math.floor(Math.random()*GIDLE.length)])}
    // báo khi cảnh mới bắt đầu
-   if(act&&ts<4&&toastI!==idx&&!inRoom&&Math.hypot(c.x-pos.x,c.z-pos.z)<90){toastI=idx;toast('Có xích mích: '+c.name+' — '+c.desc+'. Bác bảo vệ đang chạy tới can. (minh hoạ cho vui)')}
+   SCN.forEach((cc,j)=>{if(ts<4&&sch&&!inRoom&&window.__scT[j]!==Math.floor(now/32)&&Math.hypot(cc.x-pos.x,cc.z-pos.z)<60){window.__scT[j]=Math.floor(now/32);toast('Đang có xích mích: '+cc.name+' — '+cc.desc+(j===idx?'. Bác bảo vệ đang chạy tới can.':'.')+' (minh hoạ cho vui)')}});if(0&&act&&ts<4&&toastI!==idx&&!inRoom&&Math.hypot(c.x-pos.x,c.z-pos.z)<90){toastI=idx;toast('Có xích mích: '+c.name+' — '+c.desc+'. Bác bảo vệ đang chạy tới can. (minh hoạ cho vui)')}
    if(ts>8)toastI=toastI===idx?idx:toastI;
   });
  }
