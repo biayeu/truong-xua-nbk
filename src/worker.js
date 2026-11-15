@@ -20,7 +20,7 @@ const normLop = s => clean(s, 10).toUpperCase().replace(/\s+/g, '');
 const rnd = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); };
 const pin6 = () => String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
 async function sha(s) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
-const okRoom = r => r === 'truong' || KHOA_RE.test(r);
+const okRoom = r => r === 'truong' || KHOA_RE.test(r) || /^quan-(bia|mori|che|net)$/.test(r);
 const LOOK_KEYS = { hair: 12, shoes: 12, acc: 40, uni: 12, skin: 8, veh: 12 };
 function cleanLook(l) {
   const o = {}; if (!l || typeof l !== 'object') return o;
