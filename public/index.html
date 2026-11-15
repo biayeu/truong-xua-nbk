@@ -141,6 +141,12 @@ select{min-height:44px}select option{background:#21372d;color:#f3f0e6}
  .card h2{font-size:26px}
 }
 @media(max-width:700px) and (max-height:500px){#cap{bottom:110px}}
+.vlegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0 10px;font-size:13px}.vlegend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.vrow{margin:10px 0}.vbar{display:flex;height:26px;overflow:hidden;margin:4px 0;border:2px solid var(--line)}.vbar div{display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:700;min-width:22px;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.mtc{border:2px solid var(--line);padding:10px 12px;margin:8px 0;background:rgba(255,255,255,.04)}.mtc b{color:var(--y)}
+.bkg{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px}.bkc{background:#fffaf0;color:#2a211b;border:2px solid #b08d57;padding:8px 10px;min-height:96px;display:flex;flex-direction:column;justify-content:space-between;gap:4px}.bkc .small{color:#6b5a45}.bksg{height:58px;max-width:100%;object-fit:contain;align-self:flex-end}.bkno{align-self:flex-end;font-style:italic}
+#sgC{width:100%;height:auto;aspect-ratio:600/220;background:#fffaf0;border:3px solid #b08d57;touch-action:none;cursor:crosshair;display:block}
+#bMeet.ring{animation:ringb 1s infinite}@keyframes ringb{50%{background:var(--y);color:#1b2b23}}
 </style>
 </head>
 <body>
@@ -158,9 +164,11 @@ select{min-height:44px}select option{background:#21372d;color:#f3f0e6}
     <button id="bLight" class="chip sm" hidden>Đèn pin: tắt</button>
     <button id="bFlag" class="chip sm">Thử chào cờ</button>
     <button id="bSky" class="chip sm">Nhìn từ trên cao</button>
+    <button id="bSeason" class="chip sm">Phượng: theo tháng thật</button>
     <button id="bGb" class="chip sm">Lưu bút</button>
     <button id="bOn" class="chip sm" hidden>● Online 0</button>
     <button id="bSo" class="chip sm" hidden>Sổ lớp</button>
+    <button id="bMeet" class="chip sm" hidden>Hẹn gặp</button>
     <button id="bFind" class="chip sm" hidden>Tìm lớp</button>
     <button id="bGo" class="chip sm">Đi tới…</button>
     <button id="bNv" class="chip sm">Nhân vật</button>
@@ -215,6 +223,7 @@ select{min-height:44px}select option{background:#21372d;color:#f3f0e6}
      <label>Màu da</label><div class="segs sm" id="suSkin"></div>
     </div></div>
     <label>Phụ kiện <span class="small">(chọn nhiều)</span></label><div class="segs wrap sm" id="suAcc"></div>
+    <label>Hồi đó bạn đi học bằng gì? <span class="small">(thống kê theo khóa ở nhà xe)</span></label><div class="segs wrap sm" id="suVeh"></div>
     <label>Ảnh đại diện</label><div class="avRow"><img id="suAvI" alt="Ảnh đại diện" hidden><button type="button" class="chip" id="suAvB">Chọn ảnh</button><button type="button" class="chip" id="suAvX" hidden>Bỏ ảnh</button><input type="file" id="suAvF" accept="image/*" hidden></div>
     <p class="small" style="margin-top:0">Ảnh hiện tròn cạnh tên bạn trên đầu nhân vật, trong chat và sổ lớp.</p>
     <div id="suUni" hidden><label>Hồi đó khóa bạn mặc gì? <span class="small">(bình chọn, khóa nào nhiều người chọn kiểu nào thì nhân vật cả khóa mặc kiểu đó)</span></label>
@@ -390,7 +399,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.m
 const anyModal=()=>[...document.querySelectorAll('.modal')].some(m=>!m.hidden);
 
 /* ---------- audio ---------- */
-let AC=null,master=null,soundOn=true,musicT=null;
+let AC=null,master=null,soundOn=true,musicT=null,veGain=null,drumBuf=null,drumRev=null;
 function audioInit(){
  if(AC)return;
  try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){AC=null;return}
@@ -405,18 +414,34 @@ function audioInit(){
  const cg=AC.createGain();cg.gain.value=.035;
  const lfo=AC.createOscillator();lfo.frequency.value=36;const lg=AC.createGain();lg.gain.value=.022;lfo.connect(lg);lg.connect(cg.gain);
  const sw=AC.createOscillator();sw.frequency.value=.06;const sg=AC.createGain();sg.gain.value=.02;sw.connect(sg);sg.connect(cg.gain);
- src.connect(bp);bp.connect(cg);cg.connect(master);src.start();lfo.start();sw.start();
+ veGain=AC.createGain();veGain.gain.value=(typeof veVol==='function')?veVol():1;src.connect(bp);bp.connect(cg);cg.connect(veGain);veGain.connect(master);src.start();lfo.start();sw.start();
+ // nếu có file trong.mp3 (tiếng trống thật thu ở trường) thì dùng, không thì dùng tiếng trống tổng hợp
+ fetch('/trong.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>b?AC.decodeAudioData(b):null).then(buf=>{if(buf)drumBuf=buf}).catch(()=>{});
  // nhạc nhẹ không lời
  const scale=[196,220,246.9,293.7,329.6,392,440,493.9,587.3];const bass=[98,82.4,130.8,146.8];
  let next=AC.currentTime+.3,idx=4,beat=0;
  function tone(f,t,dur,vol,type){const o=AC.createOscillator();o.type=type;o.frequency.value=f;const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.03);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(bus);o.start(t);o.stop(t+dur+.05)}
  musicT=setInterval(()=>{while(next<AC.currentTime+.6){if(beat%8===0)tone(bass[(beat/8|0)%4],next,3.6,.5,'sine');if(Math.random()>.22){idx=Math.max(0,Math.min(scale.length-1,idx+[-2,-1,-1,1,1,2][Math.random()*6|0]));tone(scale[idx],next,1.9,.42,'triangle')}next+=.75;beat++}},200);
 }
+function drumReverb(){
+ if(drumRev)return drumRev;const len=Math.floor(AC.sampleRate*1.8),buf=AC.createBuffer(2,len,AC.sampleRate);
+ for(let c=0;c<2;c++){const d=buf.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6)}
+ const cv=AC.createConvolver();cv.buffer=buf;const w=AC.createGain();w.gain.value=.3;cv.connect(w);w.connect(master);drumRev=cv;return cv}
+// một nhát trống: tiếng "tùng" trầm của thân trống, tiếng căng của mặt da, tiếng dùi chạm và vang ngoài sân
+function drumHit(t,v){
+ const rv=drumReverb(),det=1+(Math.random()-.5)*.05;
+ const tone=(type,f0,f1,d1,amp,att,dec)=>{const o=AC.createOscillator();o.type=type;o.frequency.setValueAtTime(f0*det,t);if(f1!==f0)o.frequency.exponentialRampToValueAtTime(f1*det,t+d1);
+  const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(amp*v,t+att);g.gain.exponentialRampToValueAtTime(.001,t+dec);o.connect(g);g.connect(master);g.connect(rv);o.start(t);o.stop(t+dec+.1)};
+ tone('sine',165,64,.22,1,.006,1.0);tone('triangle',250,120,.12,.45,.004,.35);tone('sine',78,78,0,.4,.02,1.5);
+ const n=AC.createBuffer(1,Math.floor(AC.sampleRate*.06),AC.sampleRate),nd=n.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*Math.pow(1-i/nd.length,2);
+ const ns=AC.createBufferSource();ns.buffer=n;const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1900;bp.Q.value=1.1;const ng=AC.createGain();ng.gain.value=.55*v;ns.connect(bp);bp.connect(ng);ng.connect(master);ng.connect(rv);ns.start(t)}
+// một hồi trống: dồn dập nhanh dần rồi ba tiếng mạnh (dài khoảng 3 giây)
 function drumSound(){
- if(!AC||!soundOn)return;const t0=AC.currentTime+.02;
- [0,.55,1.1].forEach(o=>{const t=t0+o;const os=AC.createOscillator();os.type='sine';os.frequency.setValueAtTime(130,t);os.frequency.exponentialRampToValueAtTime(46,t+.35);const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(1.1,t+.008);g.gain.exponentialRampToValueAtTime(.001,t+1.1);os.connect(g);g.connect(master);os.start(t);os.stop(t+1.2);
-  const nb=AC.createBuffer(1,AC.sampleRate*.2,AC.sampleRate),nd=nb.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*(1-i/nd.length);const ns=AC.createBufferSource();ns.buffer=nb;const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;const ng=AC.createGain();ng.gain.value=.5;ns.connect(lp);lp.connect(ng);ng.connect(master);ns.start(t)});
-}
+ if(!AC||!soundOn)return;
+ if(drumBuf){const s=AC.createBufferSource();s.buffer=drumBuf;s.connect(master);s.start();return}
+ let t=AC.currentTime+.03,gap=.3;
+ for(let i=0;i<7;i++){drumHit(t,.35+i*.07);t+=gap;gap=Math.max(.1,gap*.82)}
+ t+=.25;[0,.55,1.1].forEach((o,i)=>drumHit(t+o,1-i*.06))}
 $('#bSnd').onclick=()=>{soundOn=!soundOn;if(master)master.gain.setTargetAtTime(soundOn?.9:0,AC.currentTime,.1);if(AC&&soundOn)AC.resume();$('#bSnd').textContent='Âm thanh: '+(soundOn?'bật':'tắt');$('#bSnd').setAttribute('aria-pressed',soundOn)};
 
 /* ---------- 3D scene ---------- */
@@ -729,6 +754,7 @@ function build(){
   const inst=new THREE.InstancedMesh(fGeo,fMat,N),mt=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),p=new THREE.Vector3();
   for(let i=0;i<N;i++){const [bx,by,bz,br]=blobs[(r()*blobs.length)|0];const th=r()*Math.PI*2,ph=r()*1.35;p.set(bx+Math.sin(ph)*Math.cos(th)*br*.97,by+Math.cos(ph)*br*.5*.97,bz+Math.sin(ph)*Math.sin(th)*br*.97);const k=.7+r()*.7;sc.set(k,k,k);q.setFromAxisAngle(up,r()*6);mt.compose(p,q,sc);inst.setMatrixAt(i,mt);}
   if(inst.instanceColor)inst.instanceColor.needsUpdate=true;g.add(inst);
+  g.userData.fl=inst;g.userData.flN=N;(window.__PHT=window.__PHT||[]).push(g);
   if(act){g.traverse(o=>o.userData.act=act);targets.push(g)}
   return g}
  phuong(1,-6,1.5,'tree',11,520);
@@ -743,7 +769,7 @@ function build(){
  const spots=[[1,-6,4.6],[26,8.6,3],[29.9,-5.7,3],[-26,-27.8,2.6]];
  for(let i=0;i<PN;i++){const s=spots[i%4];pa[i*3]=s[0]+(pr()-.5)*s[2]*2;pa[i*3+1]=pr()*4.5;pa[i*3+2]=s[1]+(pr()-.5)*s[2]*2}
  pg.setAttribute('position',new THREE.BufferAttribute(pa,3));
- const pts=new THREE.Points(pg,new THREE.PointsMaterial({color:0xe2342b,size:.11}));scene.add(pts);
+ const pts=new THREE.Points(pg,new THREE.PointsMaterial({color:0xe2342b,size:.11}));scene.add(pts);window.__ptsRef=pts;
  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
  if(!reduce)anim.push((dt,t)=>{for(let i=0;i<PN;i++){let y=pa[i*3+1]-dt*(.45+(i%5)*.08);pa[i*3]+=Math.sin(t*1.3+i)*dt*.25;if(y<.05){const s=spots[i%4];y=4.4;pa[i*3]=s[0]+(Math.random()-.5)*s[2]*2;pa[i*3+2]=s[1]+(Math.random()-.5)*s[2]*2}pa[i*3+1]=y}pg.attributes.position.needsUpdate=true});
 
@@ -948,6 +974,8 @@ let riding=false,moving=false,moveSpeed=0,walkPhase=0,lightOn=false,timeMode=0;
 const SKIN={sang:0xf2d3b3,vua:0xe8c3a0,ngam:0xc99a74};
 const HAIRS={nam:[['ngan','Ngắn'],['dinh','Đầu đinh'],['reungoi','Rẽ ngôi'],['mai','Mái dài']],nu:[['xoa','Xoã dài'],['duoi','Đuôi ngựa'],['ngan','Ngắn ngang vai'],['bim','Hai bím']]};
 const SHOES=[['thethao','Thể thao trắng'],['bata','Giày bata'],['da','Giày da'],['sandal','Dép quai hậu'],['tong','Dép tổ ong']];
+const VEHS=[['xedap','Xe đạp'],['xedapdien','Xe đạp điện'],['xemay','Xe máy'],['dibo','Đi bộ'],['dua','Bố mẹ đưa đón']];
+const VEHC={xedap:'#3d7ec9',xedapdien:'#3aa56b',xemay:'#d9534f',dibo:'#e0a22b',dua:'#8e6bbf'};
 const ACCS=[['cap','Cặp sách'],['doan','Huy hiệu Đoàn'],['kinh','Kính'],['aomua','Áo mưa cánh dơi'],['nonla','Nón lá'],['mucoi','Mũ cối']];
 const UNI={he:[['aodai','Hè: nữ áo dài, nam sơ mi trắng'],['somi','Hè: cả lớp sơ mi trắng, quần xanh']],dong:[['khoac','Đông: áo khoác xanh than (như ảnh 2025)'],['len','Đông: áo len, áo khoác tự do'],['gio','Đông: áo gió xanh']]};
 let UVOTES={};
@@ -969,7 +997,7 @@ function seasonDesc(P){const se=effSeason(P.season),u=uniFor(P.khoa),nu=P.sex===
   const hs=HAIRS[nu?'nu':'nam'];if(!hs.some(x=>x[0]===L.hair))L.hair=hs[0][0];
   segBtns($('#suHair'),hs,L.hair);segBtns($('#suShoes'),SHOES,L.shoes||(profile.role==='gv'?'da':'thethao'));
   segBtns($('#suSkin'),[['sang','Sáng'],['vua','Vừa'],['ngam','Ngăm']],L.skin||'vua');
-  segBtns($('#suAcc'),ACCS,(L.acc||'').split(',').filter(Boolean),true);
+  segBtns($('#suAcc'),ACCS,(L.acc||'').split(',').filter(Boolean),true);segBtns($('#suVeh'),VEHS,L.veh||'xedap');
   const showU=profile.role==='hs'&&!!$('#suKhoa').value;$('#suUni').hidden=!showU;
   if(showU){const u=uniFor($('#suKhoa').value);segBtns($('#suVhe'),UNI.he,profile.vote.he||'');segBtns($('#suVdong'),UNI.dong,profile.vote.dong||'');
    const v=UVOTES[$('#suKhoa').value]||{},cnt=o=>Object.values(o||{}).reduce((a,b)=>a+b,0);
@@ -982,7 +1010,7 @@ function seasonDesc(P){const se=effSeason(P.season),u=uniFor(P.khoa),nu=P.sex===
  const pick=(id,fn)=>$(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;fn(b.dataset.v);draw()});
  pick('#suHair',v=>profile.look.hair=v);pick('#suShoes',v=>profile.look.shoes=v);pick('#suSkin',v=>profile.look.skin=v);
  pick('#suAcc',v=>{const a=(profile.look.acc||'').split(',').filter(Boolean);const i=a.indexOf(v);if(i>=0)a.splice(i,1);else{const rm=x=>{const j=a.indexOf(x);if(j>=0)a.splice(j,1)};if(v==='nonla')rm('mucoi');if(v==='mucoi')rm('nonla');a.push(v)}profile.look.acc=a.join(',')});
- pick('#suVhe',v=>profile.vote.he=v);pick('#suVdong',v=>profile.vote.dong=v);
+ pick('#suVeh',v=>profile.look.veh=v);pick('#suVhe',v=>profile.vote.he=v);pick('#suVdong',v=>profile.vote.dong=v);
  sel.addEventListener('change',draw);
  // ảnh đại diện: tự cắt vuông, thu nhỏ 160×160
  $('#suAvB').onclick=()=>$('#suAvF').click();
@@ -1114,13 +1142,23 @@ function makeAv(P,avatar){
  const fm=M(0x2b4c7e,{metalness:.3,roughness:.5}),ty=M(0x1e1e1e);
  [-.52,.52].forEach(z=>{const w=new THREE.Mesh(new THREE.TorusGeometry(.33,.03,6,18),ty);w.rotation.y=Math.PI/2;w.position.set(0,.36,z);w.name='wheel';bk.add(w)});
  box(.045,.045,.8,fm,0,.72,.02,bk,false);const dn=box(.045,.045,.72,fm,0,.55,.2,bk,false);dn.rotation.x=-.62;box(.045,.45,.045,fm,0,.6,-.2,bk,false);box(.13,.05,.26,M(0x222222),0,.86,-.25,bk,false);box(.5,.035,.035,M(0x555555),0,.98,.42,bk,false);box(.32,.2,.26,M(0x6b4a33),0,.85,.66,bk,false);
+ const veh=(P.look&&P.look.veh)||'xedap';
+ if(veh==='xedapdien'){box(.34,.2,.2,M(0x2f6f4f),0,.64,-.52,bk,false);box(.1,.1,.1,M(0xfff3b0,{emissive:0xffe9a0,emissiveIntensity:.5}),0,1,.52,bk,false)}
+ else if(veh==='xemay'){
+  while(bk.children.length)bk.remove(bk.children[0]);
+  const red=M(0xb71c1c,{metalness:.35,roughness:.45}),gry=M(0x555555),blk=M(0x222222);
+  [-.62,.62].forEach(z=>{const w=new THREE.Mesh(new THREE.TorusGeometry(.29,.06,6,18),ty);w.rotation.y=Math.PI/2;w.position.set(0,.3,z);w.name='wheel';bk.add(w)});
+  box(.34,.34,.9,red,0,.5,0,bk,false);box(.3,.1,.64,blk,0,.78,-.16,bk,false);box(.3,.08,.3,red,0,.74,-.66,bk,false);
+  const fk=box(.06,.62,.06,gry,0,.5,.62,bk,false);fk.rotation.x=-.3;box(.58,.04,.04,gry,0,1,.5,bk,false);
+  box(.14,.12,.1,M(0xfff3b0,{emissive:0xffe9a0,emissiveIntensity:.6}),0,.86,.7,bk,false);
+  const ex=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.55,8),gry);ex.rotation.x=Math.PI/2;ex.position.set(.2,.3,-.4);bk.add(ex)}
  return {parts,avName};
 }
 // động tác: đi, chạy (co gối, vung tay, nghiêng người), đứng thở, nhảy (co chân), tiếp đất (khuỵu gối), đạp xe
 function animAv(P,dt,st){const sp=st.speed||0,run=sp>4.2;
  const lerp=(o,k,v,r=12)=>{o[k]+=(v-o[k])*Math.min(1,dt*r)};
  let hipL=0,hipR=0,kL=0,kR=0,aL=0,aR=0,eL=-.12,eR=-.12,lean=0,bob=0,squat=0;
- if(st.riding){P.ph+=dt*sp*2.2;hipL=-1.15+Math.sin(P.ph)*.45;hipR=-1.15-Math.sin(P.ph)*.45;kL=1.3-Math.sin(P.ph)*.4;kR=1.3+Math.sin(P.ph)*.4;aL=aR=-.95;eL=eR=-.35;lean=.25}
+ if(st.riding){P.ph+=dt*sp*2.2;const sn=st.moto?0:Math.sin(P.ph);hipL=-1.15+sn*.45;hipR=-1.15-sn*.45;kL=1.3-sn*.4;kR=1.3+sn*.4;aL=aR=-.95;eL=eR=-.35;lean=.25}
  else if(st.air){hipL=-.7;hipR=-.25;kL=1.1;kR=.6;aL=-.5;aR=-.9;eL=eR=-.6;lean=.08}
  else if(sp>.25){P.ph+=dt*(run?sp*1.9:sp*2.7);const s=Math.sin(P.ph),c=Math.cos(P.ph),A=run?.75:.48;
   hipL=-s*A;hipR=s*A;kL=Math.max(0,c)*(run?1.5:.75)+.05;kR=Math.max(0,-c)*(run?1.5:.75)+.05;aL=s*A*(run?1.1:.8);aR=-s*A*(run?1.1:.8);eL=eR=run?-1.3:-.25;lean=run?.2:.04;bob=Math.abs(c)*(run?.06:.025)}
@@ -1155,7 +1193,7 @@ function updateAvatar(dt){
  avatar.position.set(pos.x,feetY+(riding?.12:0),pos.z);avatar.rotation.y=faceYaw;
  const bk=avatar.getObjectByName('bike');if(bk){bk.visible=riding;if(riding)bk.children.forEach(o=>{if(o.name==='wheel')o.rotation.x+=dt*moveSpeed*3})}
  if(SEAT){avatar.position.set(SEAT.x,0,SEAT.z);avatar.rotation.y=faceYaw=SEAT.yaw}
- animAv(avParts,dt,{speed:SEAT?0:moving?moveSpeed:0,air:!SEAT&&!onGround&&airT>.06,land:SEAT?0:landT,riding:riding&&!SEAT,sit:SEAT});
+ animAv(avParts,dt,{speed:SEAT?0:moving?moveSpeed:0,air:!SEAT&&!onGround&&airT>.06,land:SEAT?0:landT,riding:riding&&!SEAT,sit:SEAT,moto:myVeh()==='xemay'});
 }
 
 /* --- ngày đêm theo giờ thật --- */
@@ -1302,7 +1340,7 @@ const acts=[
  {x:C_X-.5,z:-45.5,r:3,l:'Xem ảnh trên bảng',f:()=>showPhoto(0)},
  {x:0,z:0,r:3.5,l:'Xem tượng',f:()=>toast('Danh nhân văn hóa Trạng Trình Nguyễn Bỉnh Khiêm (1491 – 1585)')},
  {x:FP[0],z:FP[1],r:3.5,l:'Thử chào cờ',f:startCeremony},
- {x:58,z:6,r:7.5,l:'Lấy xe đạp',c:()=>!riding,f:()=>{riding=true;toast('Đã lấy xe đạp, đi nhanh hơn rồi đó!')}},
+ {x:58,z:6,r:7.5,get l(){return takeLabel()},c:()=>!riding,f:()=>{riding=true;toast(takeToast())}},
  {x:()=>ball.position.x,z:()=>ball.position.z,r:1.8,l:'Sút bóng',f:kickBall}];
 let curAct=null;
 function updateActs(){
@@ -1433,7 +1471,7 @@ async function srvJoin(){
  }catch(e){if(e.status===403)toast('Tên này đã bị người lập trang chặn.');else toast(e.message||'Chưa kết nối được máy chủ, lưu bút tạm lưu trên máy bạn.')}
 }
 srvReady.then(ok=>{if(!ok)return;
- $('#bOn').hidden=false;$('#bSo').hidden=false;$('#gbTabs').hidden=false;$('#nm').hidden=true;$('#nmL').hidden=true;$('#suRecW').hidden=false;
+ $('#bOn').hidden=false;$('#bSo').hidden=false;$('#bMeet').hidden=false;$('#gbTabs').hidden=false;$('#nm').hidden=true;$('#nmL').hidden=true;$('#suRecW').hidden=false;
  $('#start .small').insertAdjacentHTML('beforeend',' · Lưu bút, sổ lớp và trò chuyện dùng chung với bạn bè.');
  loadNotes();setInterval(()=>{if(!live||live.readyState!==1)loadNotes()},60000);
  api('/uniform').then(j=>{UVOTES=j.votes||{};if(window.__drawSetup)window.__drawSetup()}).catch(()=>{});
@@ -1456,7 +1494,7 @@ anim.push(dt=>{peers.forEach(o=>{const t=o.tgt;if(!t||t.h||(t.k??-1)!==(inRoom?i
  const gp=o.g.position,dx=t.x-gp.x,dz=t.z-gp.z,d=Math.hypot(dx,dz);if(d>25){gp.set(t.x,0,t.z)}else{const k=Math.min(1,dt*6);gp.x+=dx*k;gp.z+=dz*k}
  let dy=t.y-o.g.rotation.y;dy=Math.atan2(Math.sin(dy),Math.cos(dy));o.g.rotation.y+=dy*Math.min(1,dt*10);
  const bk=o.g.getObjectByName('bike');if(bk)bk.visible=!!t.r;gp.y+=((t.f||0)+(t.r?.12:0)-gp.y)*Math.min(1,dt*12);
- animAv(o.parts,dt,{speed:(t.m||d>.05)?(t.r?7:t.u?6.2:2.9):0,air:!!t.a,riding:!!t.r,land:0});
+ animAv(o.parts,dt,{speed:(t.m||d>.05)?(t.r?7:t.u?6.2:2.9):0,air:!!t.a,riding:!!t.r,land:0,moto:!!(o.info.look&&o.info.look.veh==='xemay')});
  if(o.bubble){o.bubT-=dt;if(o.bubT<=0){o.g.remove(o.bubble);o.bubble=null}}
 });
  // gửi vị trí của mình (tối đa 4 lần/giây, chỉ khi có thay đổi)
@@ -1475,6 +1513,7 @@ function liveStart(){if(!KEY||(live&&live.readyState<2))return;clearTimeout(live
  try{live=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/api/live?key='+encodeURIComponent(KEY))}catch(e){return}
  live.onopen=()=>{liveTry=0;lastSent=null};
  live.onmessage=ev=>{let m;try{m=JSON.parse(ev.data)}catch(e){return}
+  if(window.__d6&&window.__d6(m)===true)return;
   if(m.t==='hello'&&m.votes){UVOTES=m.votes}
   if(m.t==='look'||m.t==='uniform'){if(m.t==='uniform')UVOTES=m.votes;
    const rebuild=o=>{const r=makeAv(Object.assign({role:'hs',sex:'nam',season:'he'},o.info),o.g);o.parts=r.parts;r.avName.visible=true};
@@ -1729,7 +1768,7 @@ function walkStep(dt,fw,st,mag){
  if(SEAT){if(mag>0){SEAT=null;toast('Đứng dậy')}else{velX=velZ=0;moving=false;return}}
  if(Math.abs(pos.y-lastEye)>.3&&pos.y<40)syncFeet();
  running=!riding&&(keys.ShiftLeft||keys.ShiftRight||(joy&&Math.hypot(joy.dx,joy.dy)>50));
- const top=riding?7:running?6.2:2.9;
+ const top=riding?vehTop():running?6.2:2.9;
  const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
  let tx=fx*fw+rx*st,tz=fz*fw+rz*st;const L=Math.hypot(tx,tz);if(L>.01){tx/=L;tz/=L}else tx=tz=0;
  const amt=Math.min(1,mag)*top;tx*=amt;tz*=amt;
@@ -1748,7 +1787,7 @@ window.__dbg={tp(x,z,y=0){setMode('walk');pos.set(x,1.6+y,z);velX=velZ=0;lastEye
 window.__phys={walkStep,groundAt,jump,SURF,blockedAt,sim(fw,st,sec,run){keys.ShiftLeft=!!run;for(let t=0;t<sec;t+=1/30)walkStep(1/30,fw,st,Math.min(1,Math.hypot(fw,st)));keys.ShiftLeft=false;return [+pos.x.toFixed(2),+feetY.toFixed(2),+pos.z.toFixed(2),onGround]},get feet(){return feetY}};
 
 /* --- Đi tới nhanh --- */
-const GOTO=[['Cổng trường',-7.85,12,Math.PI],['Cầu thang lên tầng 2 (dãy nhà chính)',52.5,-38.6,0],['Cầu thang lên tầng 3 (dãy phía Đông)',-33.15,-38.6,0],['Quán cổng trường: chè, xiên nướng, bánh mì que',-37,22.5,0],['Phố bờ sông: bia hơi, trà sữa, chè',20,72,Math.PI],['Đường Trung Tân: cà phê, bia hơi, Hương Biển',-31,104,Math.PI],['Ngõ Cầu đá mới: Sky Tea, quán ốc Xanh Xẹo',-58,200,Math.PI/2],['Đền Trạng Trình','den'],['Sân đền: thắp hương, lư hương',178,1946,-Math.PI/2],['Quảng trường, tượng đài, thả diều',192,2014,-Math.PI/2],['Sân hội: hàng hương, ném vòng, phi tiêu, câu cá',110,1954,0],['Quán làng Trung Am: cà phê, bia hơi, chè',149,1925,0]];
+const GOTO=[['Cổng trường',-7.85,12,Math.PI],['Cầu thang lên tầng 2 (dãy nhà chính)',52.5,-38.6,0],['Cầu thang lên tầng 3 (dãy phía Đông)',-33.15,-38.6,0],['Quán cổng trường: chè, xiên nướng, bánh mì que',-37,22.5,0],['Phố bờ sông: bia hơi, trà sữa, chè',20,72,Math.PI],['Đường Trung Tân: cà phê, bia hơi, Hương Biển',-31,104,Math.PI],['Ngõ Cầu đá mới: cafe Mori, Sky Tea, quán ốc',-58,200,Math.PI/2],['Đền Trạng Trình','den'],['Sân đền: thắp hương, lư hương',178,1946,-Math.PI/2],['Quảng trường, tượng đài, thả diều',192,2014,-Math.PI/2],['Sân hội: hàng hương, ném vòng, phi tiêu, câu cá',110,1954,0],['Quán làng Trung Am: cà phê, bia hơi, chè',149,1925,0]];
 $('#goList').innerHTML=GOTO.map((g,i)=>`<button type="button" data-i="${i}">${g[0]}</button>`).join('');
 $('#goList').onclick=e=>{const b=e.target.closest('button');if(!b)return;const g=GOTO[+b.dataset.i];$('#goto').hidden=true;if(inRoom)leaveRoom();setMode('walk');
  if(g[1]==='den'){goTemple();return}pos.set(g[1],1.6,g[2]);yaw=g[3];pitch=-.05;faceYaw=yaw+Math.PI;velX=velZ=0;toast('Đã tới: '+g[0])};
@@ -1839,7 +1878,7 @@ const hhmm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart
 function nextDrum(){const n=vnNow();if(n.dow!==0){const d=DRUMS.find(x=>x.t>n.min);if(d)return'hôm nay '+hhmm(d.t)+' · '+d.txt.toLowerCase()}return(n.dow===6?'thứ Hai':'sáng mai')+' 07:00 · trống vào học'}
 let drumDone='';
 setInterval(()=>{const n=vnNow();if(n.dow===0||n.sec>8)return;const d=DRUMS.find(x=>x.t===n.min);if(!d)return;const k=n.day+d.t;if(drumDone===k)return;drumDone=k;
- const r=ROUNDS[d.kind];for(let i=0;i<r;i++)setTimeout(()=>{drumSound();window.__drumHit()},i*1900);
+ const r=ROUNDS[d.kind];for(let i=0;i<r;i++)setTimeout(()=>{drumSound();window.__drumHit()},i*3900);
  if(!document.hidden)toast('🥁 '+d.txt+' ('+hhmm(d.t)+')'+(AC&&soundOn?'':' · bấm "Âm thanh" để nghe'))},1000);
 window.__drumPlan=()=>DRUMS.map(d=>hhmm(d.t)+' '+d.txt).join('\n');
 window.__t={openAlbum,loadAlbum,enterRoom,loadRooms,leaveRoom,ROOMS,nextDrum,get inRoom(){return inRoom}};
@@ -1872,7 +1911,7 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
   if(sign){const s=new THREE.Mesh(new THREE.PlaneGeometry(w*.92,w*.25),new THREE.MeshStandardMaterial({map:shopFace(sign[0],sign[1],sign[2])}));s.position.set(0,2.95,.08);g.add(s)}
   g.updateMatrixWorld(true);const a=new THREE.Vector3(-w/2,0,-d),b=new THREE.Vector3(w/2,0,0);g.localToWorld(a);g.localToWorld(b);solid2.push([Math.min(a.x,b.x),Math.max(a.x,b.x),Math.min(a.z,b.z),Math.max(a.z,b.z)]);return g}
  // quán thật theo Google Maps (vị trí gần đúng)
- const named=[['Hong Kong Cảng','cà phê','#9e2f43',100],['Vy Coffe','cà phê','#2f6f62',107],['Tiệm Cà Phê Mori','quán cà phê','#6b4a33',160],['Nhà hàng Hương Biển','hải sản · bia','#1d6fa5',188]];
+ const named=[['Hong Kong Cảng','cà phê','#9e2f43',100],['Vy Coffe','cà phê','#2f6f62',107],['Nhà hàng Hương Biển','hải sản · bia','#1d6fa5',188]];
  // hai bên đường Trung Tân
  const usedE={};
  for(let z=98;z<226;z+=0){const w=4+Math.floor(R()*3);const ni=named.findIndex(n=>Math.abs(n[3]-(z+w/2))<4);const nm=ni>=0?named.splice(ni,1)[0]:null;
@@ -1887,10 +1926,10 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
  // dãy phố bờ bắc sông (đường 354B), hai bên cầu
  const usedSign={};
  for(let x=-190;x<190;x+=0){const w=4+Math.floor(R()*3);if(x+w>TT_X-5&&x<TT_X+5){x=TT_X+5;continue}
-  let sign=Math.abs(x-(-126))<4?['Mì Cay Seoul','City One','#d35400']:Math.abs(x-60)<3?['Quán chè','chè bưởi, chè khúc bạch','#8e44ad']:Math.abs(x-20)<3?['Bia hơi bờ sông','bia hơi · ốc luộc · ngô chiên','#b7791f']:Math.abs(x+70)<3?['Trà sữa','trà sữa trân châu · trà chanh','#c2185b']:Math.abs(x-118)<3?['Bánh mì que','pa-tê cay · 3 nghìn một que','#a0522d']:Math.abs(x+108)<3?['Ăn vặt','nem chua rán · khoai tây lắc','#e67e22']:null;
+  let sign=Math.abs(x-(-126))<4?['Mì Cay Seoul','City One','#d35400']:Math.abs(x-60)<3?['Quán chè','chè bưởi, chè khúc bạch','#8e44ad']:Math.abs(x-20)<3?['Bia hơi bờ sông','bia hơi · ốc luộc · ngô chiên','#b7791f']:Math.abs(x+70)<3?['Trà sữa','trà sữa trân châu · trà chanh','#c2185b']:Math.abs(x-118)<3?['Bánh mì que','pa-tê cay · 3 nghìn một que','#a0522d']:Math.abs(x+108)<3?['Ăn vặt','nem chua rán · khoai tây lắc','#e67e22']:Math.abs(x+18)<3?['Net Cầu Cũ','internet · game · 3 nghìn một giờ','#1a237e']:null;
   if(sign){if(usedSign[sign[0]+sign[1]])sign=null;else usedSign[sign[0]+sign[1]]=1}
-  {const hg=house(x+w/2,85,Math.PI,w,2+Math.floor(R()*2),sign);if(x<-140){scene.remove(hg);solid2.pop();sign=null}}
-  if(sign){const n=sign[0],T={'Quán chè':'Bát chè bưởi mát lạnh, ngồi ghế nhựa bên bờ sông. (quán minh hoạ)','Mì Cay Seoul':'Mì cay Seoul (theo Google Maps), quán mới mở sau này.','Bia hơi bờ sông':'Chiều tan học thấy các thầy ngồi làm cốc bia hơi bên sông. (quán minh hoạ)','Trà sữa':'Cốc trà chanh giã tay mát lạnh, ngồi hóng gió bờ sông. (quán minh hoạ)','Bánh mì que':'Bánh mì que pa-tê cay giòn rụm, mua vội trước giờ vào lớp. (quán minh hoạ)','Ăn vặt':'Nem chua rán chấm tương ớt, cả hội chia nhau một đĩa. (quán minh hoạ)'}[n];
+  {const hg=house(x+w/2,85,Math.PI,w,2+Math.floor(R()*2),sign);if(x<-140){scene.remove(hg);solid2.pop();sign=null}else if(sign&&sign[0]==='Net Cầu Cũ'){netFront(hg,w);window.__netCB=[hg.position.x,hg.position.z]}}
+  if(sign){const n=sign[0],T={'Quán chè':'Bát chè bưởi mát lạnh, ngồi ghế nhựa bên bờ sông. (quán minh hoạ)','Mì Cay Seoul':'Mì cay Seoul (theo Google Maps), quán mới mở sau này.','Bia hơi bờ sông':'Chiều tan học thấy các thầy ngồi làm cốc bia hơi bên sông. (quán minh hoạ)','Trà sữa':'Cốc trà chanh giã tay mát lạnh, ngồi hóng gió bờ sông. (quán minh hoạ)','Bánh mì que':'Bánh mì que pa-tê cay giòn rụm, mua vội trước giờ vào lớp. (quán minh hoạ)','Ăn vặt':'Nem chua rán chấm tương ớt, cả hội chia nhau một đĩa. (quán minh hoạ)','Net Cầu Cũ':'Quán net ở đầu cầu cũ: máy chạy ầm ầm, cả bọn cúi đầu đánh game, tới giờ ăn cơm mẹ réo mới về. (quán minh hoạ, vị trí đoán)'}[n];
    if(n.startsWith('Bia'))beerSeats(x+w/2,78.2);else if(n!=="Mì Cay Seoul"&&n!=="Quán chè")snackCart(x+w/2,78.2);
    acts.push({x:x+w/2,z:76,r:2.4,l:'Ghé '+n,f:()=>toast(T)})}
   x+=w}
@@ -1906,10 +1945,10 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
  // ngõ rẽ đông ở khoảng 150 m sau cầu, ra phía Cầu đá mới (hình con đường là ĐOÁN; quán theo Google Maps, sai số ~±20 m)
  flat(TT_X+108,10,(TT_X-108)/2,200,M(0x6f6b66),.031);flat(TT_X+108,1.6,(TT_X-108)/2,206,M(0xc9bfae),.041);flat(TT_X+108,1.6,(TT_X-108)/2,194,M(0xc9bfae),.041);
  const lane={};for(let x=-51;x>-108;x-=0){const w=4+Math.floor(R()*3);const cx=x-w/2;
-  let sn=!lane.sky&&Math.abs(cx+77)<3.5?['Sky Tea Coffee','trà sữa · cà phê · sinh tố','#0f7b8a']:!lane.oc&&Math.abs(cx+99)<3.5?['Quán ốc Xanh Xẹo','ốc · bia · đồ nhậu','#2e7d32']:null;if(sn){if(sn[0][0]==='S')lane.sky=1;else lane.oc=1}
+  let sn=!lane.mori&&Math.abs(cx+62)<3.5?['Tiệm Cà Phê Mori','quán cà phê · nâu đá · bạc xỉu','#6b4a33']:!lane.sky&&Math.abs(cx+77)<3.5?['Sky Tea Coffee','trà sữa · cà phê · sinh tố','#0f7b8a']:!lane.oc&&Math.abs(cx+99)<3.5?['Quán ốc Xanh Xẹo','ốc · bia · đồ nhậu','#2e7d32']:null;if(sn){if(sn[0][0]==='S')lane.sky=1;else if(sn[0][0]==='T')lane.mori=1;else lane.oc=1}
   house(cx,207,Math.PI,w,2+Math.floor(R()*2),sn);if(!sn&&R()<.8)house(cx,193,0,w,2,null);
   if(sn){const real=sn[0];if(real.startsWith('Quán ốc'))beerSeats(cx,203.6);else umbrellaSeats(cx,203.6);
-   acts.push({x:cx,z:202,r:2.6,l:'Ghé '+real,f:()=>toast(real.startsWith('Quán ốc')?'Quán ốc Xanh Xẹo (theo Google Maps): bát ốc luộc, cốc bia, ngồi vỉa hè rộng.':'Sky Tea Coffee (theo Google Maps): quán rộng, nhiều món, view thoáng.')})}
+   acts.push({x:cx,z:202,r:2.6,l:'Ghé '+real,f:()=>toast(real.startsWith('Quán ốc')?'Quán ốc Xanh Xẹo (theo Google Maps): bát ốc luộc, cốc bia, ngồi vỉa hè rộng.':real.startsWith('Tiệm')?'Tiệm Cà Phê Mori (chỗ Cầu đá, theo lời sếp): cốc nâu đá, ngồi ghế gỗ nhìn ra ngõ. Hình quán là minh hoạ.':'Sky Tea Coffee (theo Google Maps): quán rộng, nhiều món, view thoáng.')})}
   x-=w}
  nameTag('Ngõ ra Cầu đá mới','đường đoán · quán theo Google Maps',-70,4.2,200,.85);
  // bàn bia hơi vỉa hè: bàn nhựa đỏ thấp, ghế xanh, bom bia
@@ -2618,10 +2657,197 @@ function buildOutside(){const flat=flatG,nameTag=nameTagG;
 anim.push(()=>{if(skyMesh)skyMesh.position.set(cam.position.x,0,cam.position.z);if(stars)stars.position.set(cam.position.x,0,cam.position.z)});
 function goTemple(){if(mode!=='walk')setMode('walk');pos.set(149,1.6,1905);yaw=Math.PI;riding=true;toast('Đạp xe 2 km theo đường Trung Tân… đã tới Đền Trạng Trình!')}
 
+/* ---------- ĐỢT 6: phương tiện đến trường, hẹn giờ gặp nhau, sổ vàng cổng trường, phượng nở theo tháng ---------- */
+const vehName=v=>(VEHS.find(x=>x[0]===v)||VEHS[0])[1];
+const myVeh=()=>(profile.look&&profile.look.veh)||'xedap';
+const vehTop=()=>({xemay:9.5,xedapdien:7.8})[myVeh()]||7;
+const takeLabel=()=>({xemay:'Lấy xe máy',xedapdien:'Lấy xe đạp điện',dibo:'Mượn xe đạp nhà xe',dua:'Mượn xe đạp nhà xe'})[myVeh()]||'Lấy xe đạp';
+const takeToast=()=>({xemay:'Đã lấy xe máy, đi nhanh hơn rồi đó!',xedapdien:'Đã lấy xe đạp điện, êm và nhanh hơn xe đạp thường.',dibo:'Hồi đó bạn đi bộ đến trường, hôm nay mượn tạm xe đạp nhà xe nhé!',dua:'Hồi đó bố mẹ đưa đón, hôm nay mượn tạm xe đạp nhà xe nhé!'})[myVeh()]||'Đã lấy xe đạp, đi nhanh hơn rồi đó!';
+const mkModal=(id,inner)=>{const m=document.createElement('div');m.className='modal';m.id=id;m.hidden=true;m.innerHTML='<div class="card" role="dialog">'+inner+'</div>';document.body.appendChild(m);m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-close]'))m.hidden=true});return m};
+const gotoMeet=()=>{$('#goto').hidden=true;if(inRoom)leaveRoom();setMode('walk');pos.set(-7.85+(Math.random()-.5)*1.6,1.6,3.5+Math.random()*2);yaw=Math.PI;pitch=-.05;faceYaw=yaw+Math.PI;velX=velZ=0;toast('Đã tới điểm hẹn, ngay trước tượng Trạng Trình.')};
+
+/* --- thống kê đi học bằng gì (số liệu do bạn bè tự chọn) --- */
+let vehM=null;
+async function openVeh(){
+ if(!vehM)vehM=mkModal('vehM','<div class="head"><h2 class="hand">Hồi đó đi học bằng gì?</h2><button class="chip" data-close>Đóng</button></div><p class="small">Số liệu do chính bạn bè chọn ở nút "Nhân vật" khi vào trang. Ai chưa chọn thì chưa được tính.</p><div id="vehBody"></div><p class="small" id="vehMine"></p>');
+ vehM.hidden=false;const bx=$('#vehBody');bx.innerHTML='<p class="small">Đang tải…</p>';
+ let st={};
+ try{st=(await api('/vehicles')).stats}catch(e){bx.innerHTML='<p class="small">Thống kê chỉ có khi trang chạy trên mạng.</p>';return}
+ const khoas=Object.keys(st).sort((a,b)=>khoaEnd(b)-khoaEnd(a));
+ const legend='<div class="vlegend">'+VEHS.map(([v,t])=>`<span><i style="background:${VEHC[v]}"></i>${t}</span>`).join('')+'</div>';
+ bx.innerHTML=khoas.length?legend+khoas.map(k=>{const o=st[k],tot=VEHS.reduce((a,[v])=>a+(o[v]||0),0),parts=VEHS.filter(([v])=>o[v]);
+  return `<div class="vrow"><b>Khóa ${esc(k)}</b><span class="small"> · ${tot} bạn đã chọn</span><div class="vbar">${parts.map(([v,t])=>`<div style="width:${(o[v]*100/tot).toFixed(1)}%;background:${VEHC[v]}" title="${t}: ${o[v]}">${o[v]}</div>`).join('')}</div><p class="small">${parts.map(([v,t])=>t+' '+Math.round(o[v]*100/tot)+'%').join(' · ')}</p></div>`}).join('')
+  :'<p class="small" style="padding:8px 0">Chưa ai chọn. Bạn bấm "Nhân vật", chọn xe hồi đó bạn đi học rồi bấm "Lưu nhân vật" nhé.</p>';
+ $('#vehMine').textContent='Bạn đã chọn: '+vehName(myVeh())+(SRV?'.':' (chưa lên mạng nên chưa được tính).');
+}
+
+/* --- hẹn giờ gặp nhau --- */
+let MEETS=[],meetM=null,meetTick=null;
+const meetRoomLabel=r=>r==='truong'?'Cả trường':'Khóa '+r;
+const fmtMeet=t=>new Date(t).toLocaleString('vi-VN',{weekday:'long',day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'});
+const leftTxt=ms=>{if(ms<-3600000)return'đã qua';if(ms<=0)return'đang diễn ra';const m=Math.round(ms/60000);if(m<60)return'còn '+m+' phút';const h=Math.floor(m/60);if(h<48)return'còn '+h+' giờ'+(m%60?' '+(m%60)+' phút':'');return'còn '+Math.floor(h/24)+' ngày'};
+const meetMine=m=>m.room==='truong'||m.room===profile.khoa;
+function updMeetBtn(){const b=$('#bMeet');if(!b)return;const n=MEETS.filter(m=>meetMine(m)&&m.at>Date.now()-3600000).length;b.textContent='Hẹn gặp'+(n?' ('+n+')':'')}
+async function loadMeets(){if(!SRV)return;try{MEETS=(await api('/meets')).meets;updMeetBtn();if(meetM&&!meetM.hidden)renderMeets()}catch(e){}}
+function renderMeets(){
+ const now=Date.now(),list=MEETS.filter(m=>m.at>now-3600000);
+ $('#mtList').innerHTML=list.length?list.map(m=>`<div class="mtc"><b>${esc(m.title)}</b><p class="small" style="margin:2px 0">${meetRoomLabel(m.room)} · ${esc(fmtMeet(m.at))} · <b>${leftTxt(m.at-now)}</b></p><p class="small" style="margin:2px 0">${esc(m.name)}${m.lop?' · lớp '+esc(m.lop):''} hẹn.</p><div class="frow"><button type="button" class="chip" data-go>Tới điểm hẹn</button>${ME&&m.uid===ME.id?`<button type="button" class="chip" data-del="${m.id}">Gỡ hẹn</button>`:''}</div></div>`).join(''):'<p class="small" style="padding:8px 0">Chưa có hẹn nào. Bạn đặt hẹn đầu tiên đi: tới giờ, trang sẽ đánh trống gọi cả khóa ra sân.</p>'}
+function openMeet(){
+ if(!meetM){
+  meetM=mkModal('meetM','<div class="head"><h2 class="hand">Hẹn gặp nhau ở sân trường</h2><button class="chip" data-close>Đóng</button></div><p class="small">Tới giờ hẹn, ai đang mở trang (cùng khóa) sẽ nghe tiếng trống gọi, rồi bấm "Tới điểm hẹn" để gặp nhau ngay trước tượng Trạng Trình.</p><div id="mtList"></div><form id="mtF" autocomplete="off"><label for="mtRoom">Hẹn ai?</label><select id="mtRoom"></select><label for="mtTitle">Hẹn làm gì?</label><input id="mtTitle" maxlength="60" placeholder="Ví dụ: Họp lớp 12A3 online"><label for="mtAt">Lúc nào? <span class="small">(theo đồng hồ máy bạn)</span></label><input id="mtAt" type="datetime-local"><div class="frow"><span class="small" id="mtMsg"></span><button class="pri" type="submit">Đặt hẹn</button></div></form>');
+  let h='<option value="truong">Cả trường</option>';for(let y=2026;y>=1975;y--)h+=`<option>${y-3} – ${y}</option>`;$('#mtRoom').innerHTML=h;
+  const toL=d=>{const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())};
+  window.__toL=toL;
+  $('#mtList').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
+   if(b.dataset.go!==undefined){meetM.hidden=true;gotoMeet();return}
+   if(b.dataset.del){try{await api('/meets/del',{key:KEY,id:+b.dataset.del});await loadMeets()}catch(err){$('#mtMsg').textContent=err.message}}});
+  $('#mtF').addEventListener('submit',async e=>{e.preventDefault();const msg=$('#mtMsg');
+   if(!SRV||!KEY){msg.textContent='Bạn bấm "Bước vào trường" để đặt hẹn nhé.';return}
+   const at=new Date($('#mtAt').value).getTime();if(!isFinite(at)){msg.textContent='Bạn chọn ngày giờ hẹn nhé.';return}
+   try{await api('/meets',{key:KEY,room:$('#mtRoom').value,title:$('#mtTitle').value,at});$('#mtTitle').value='';msg.textContent='Đã đặt hẹn. Tới giờ sẽ có tiếng trống.';await loadMeets()}catch(err){msg.textContent=err.message||'Chưa đặt được, bạn thử lại nhé.'}});
+ }
+ const r=$('#mtRoom');if(profile.khoa&&[...r.options].some(o=>o.value===profile.khoa))r.value=profile.khoa;
+ const d=new Date(Date.now()+24*3600e3);d.setHours(20,0,0,0);if(!$('#mtAt').value)$('#mtAt').value=window.__toL(d);
+ $('#mtMsg').textContent='';meetM.hidden=false;renderMeets();loadMeets();
+ clearInterval(meetTick);meetTick=setInterval(()=>{if(meetM.hidden){clearInterval(meetTick);return}renderMeets()},20000);
+}
+function meetNow(m){
+ if(!meetMine(m))return;audioInit();try{AC&&AC.resume()}catch(e){}drumSound();if(window.__drumHit)window.__drumHit();
+ toast('🥁 Đến giờ hẹn: '+meetRoomLabel(m.room)+' · '+m.title+' (do '+m.name+' hẹn). Bấm "Hẹn gặp" rồi "Tới điểm hẹn" nhé.');
+ const b=$('#bMeet');b.classList.add('ring');setTimeout(()=>b.classList.remove('ring'),90000);loadMeets()}
+$('#bMeet').onclick=openMeet;
+
+/* --- sổ vàng cổng trường: danh sách người đã vào + chữ ký vẽ tay --- */
+let bookM=null,BOOK=null;
+const fmtDay=t=>new Date(t).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
+async function loadBook(){try{BOOK=await api('/book');renderBook()}catch(e){$('#bkList').innerHTML='<p class="small">Sổ vàng chỉ mở được khi trang chạy trên mạng.</p>'}}
+function renderBook(){
+ if(!BOOK)return;const q=($('#bkQ').value||'').trim().toLowerCase();
+ const list=BOOK.people.filter(p=>!q||(p.name+' '+p.lop+' '+p.khoa).toLowerCase().includes(q));
+ $('#bkCount').textContent='Đã có '+BOOK.total+' người về thăm trường.';
+ const mine=ME&&BOOK.people.find(p=>p.id===ME.id);$('#bkDel').hidden=!(mine&&mine.sg);
+ $('#bkList').innerHTML=list.length?'<div class="bkg">'+list.map(p=>`<div class="bkc"><div><b>${esc(p.name)}</b><br><span class="small">${p.role==='gv'?'Thầy cô':(p.lop?'Lớp '+esc(p.lop)+' · ':'')+(p.khoa?'khóa '+esc(p.khoa):'')} · đến ${fmtDay(p.ts)}</span></div>${p.sg?`<img class="bksg" loading="lazy" alt="Chữ ký của ${esc(p.name)}" src="/api/sig?id=${encodeURIComponent(p.id)}&v=${p.sg}">`:'<span class="small bkno">chưa ký</span>'}</div>`).join('')+'</div>':'<p class="small" style="padding:8px 0">Không thấy tên nào.</p>'}
+function openBook(){
+ if(!bookM){
+  bookM=mkModal('bookM','<div class="head"><h2 class="hand">Sổ vàng cổng trường</h2><button class="chip" data-close>Đóng</button></div><p class="small" id="bkCount">Đang tải…</p><div id="bkMain"><div class="frow" style="gap:8px"><button class="pri" type="button" id="bkSign">Ký tên của tôi</button><button class="chip" type="button" id="bkDel" hidden>Bỏ chữ ký của tôi</button></div><input id="bkQ" placeholder="Tìm theo tên, lớp, khóa…" aria-label="Tìm trong sổ vàng" style="margin-top:8px"><div id="bkList"></div></div><div id="bkPad" hidden><p class="small">Dùng ngón tay hoặc chuột ký vào ô dưới đây. Chữ ký hiện ngay trong sổ vàng, ai vào trường cũng xem được.</p><canvas id="sgC" width="600" height="220" aria-label="Ô ký tên"></canvas><div class="frow" style="margin-top:8px"><button type="button" class="chip" id="sgClear">Xoá, ký lại</button><span><button type="button" class="chip" id="sgBack">Quay lại</button> <button type="button" class="pri" id="sgSave">Lưu chữ ký</button></span></div><p class="small" id="sgMsg"></p></div>');
+  $('#bkQ').addEventListener('input',renderBook);
+  const c=$('#sgC'),g=c.getContext('2d');let dr=false,last=null,any=false;
+  const ink=()=>{g.lineWidth=3.4;g.lineCap='round';g.lineJoin='round';g.strokeStyle=g.fillStyle='#1f3a8a'};
+  const pt=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+  c.addEventListener('pointerdown',e=>{e.preventDefault();try{c.setPointerCapture(e.pointerId)}catch(x){}dr=true;ink();last=pt(e);g.beginPath();g.arc(last[0],last[1],1.7,0,7);g.fill();any=true});
+  c.addEventListener('pointermove',e=>{if(!dr)return;e.preventDefault();const p=pt(e);g.beginPath();g.moveTo(last[0],last[1]);g.lineTo(p[0],p[1]);g.stroke();last=p});
+  const up=()=>{dr=false};c.addEventListener('pointerup',up);c.addEventListener('pointercancel',up);
+  window.__sgClear=()=>{g.clearRect(0,0,c.width,c.height);any=false};
+  $('#sgClear').onclick=window.__sgClear;
+  $('#sgBack').onclick=()=>{$('#bkPad').hidden=true;$('#bkMain').hidden=false};
+  $('#bkSign').onclick=()=>{if(!SRV||!KEY){toast('Bạn bấm "Bước vào trường" và nhập tên trước khi ký nhé.');return}window.__sgClear();$('#sgMsg').textContent='';$('#bkMain').hidden=true;$('#bkPad').hidden=false};
+  $('#sgSave').onclick=async()=>{const m=$('#sgMsg');if(!any){m.textContent='Bạn ký vào ô trên đã nhé.';return}
+   let d=c.toDataURL('image/png');
+   if(d.length*.75>38000){const t=document.createElement('canvas');t.width=400;t.height=147;t.getContext('2d').drawImage(c,0,0,400,147);d=t.toDataURL('image/png')}
+   try{await api('/sig',{key:KEY,data:d});toast('Đã ký vào sổ vàng cổng trường ✍️');$('#bkPad').hidden=true;$('#bkMain').hidden=false;loadBook()}catch(err){m.textContent=err.message||'Chưa lưu được, bạn thử lại nhé.'}};
+  $('#bkDel').onclick=async()=>{try{await api('/sig',{key:KEY,data:null});toast('Đã bỏ chữ ký của bạn');loadBook()}catch(err){toast(err.message||'Chưa bỏ được')}};
+ }
+ $('#bkPad').hidden=true;$('#bkMain').hidden=false;bookM.hidden=false;loadBook();
+}
+
+/* --- phượng nở và ve kêu theo tháng thật (tháng 5–7 nở rộ) --- */
+let bloomOver=0;
+const vnMonth=()=>new Date(Date.now()+7*3600e3).getUTCMonth()+1;
+const BLOOM={4:.15,5:.75,6:1,7:.7,8:.15},VE={4:.3,5:1,6:1,7:1,8:1,9:.3};
+const urlMonth=()=>{const q=+(new URLSearchParams(location.search).get('thang')||0);return q>=1&&q<=12?q:0};
+const bloomMonth=()=>bloomOver||urlMonth()||vnMonth();
+const veVol=()=>VE[bloomMonth()]||0;
+function applyBloom(){
+ const m=bloomMonth(),F=BLOOM[m]||0;
+ (window.__PHT||[]).forEach(g=>{const i=g.userData.fl;i.count=Math.round(g.userData.flN*F);i.visible=F>0});
+ if(window.__ptsRef)window.__ptsRef.visible=F>=.5;
+ if(veGain&&AC)veGain.gain.setTargetAtTime(veVol(),AC.currentTime,.3);
+ const b=$('#bSeason');if(b)b.textContent='Phượng: '+((bloomOver||urlMonth())?'xem tháng '+m:'tháng '+m+' (thật)');
+}
+$('#bSeason').onclick=()=>{bloomOver=bloomOver===0?6:bloomOver===6?11:0;applyBloom()};
+window.__bloom=m=>{bloomOver=m||0;applyBloom()};
+
+/* --- tin nhắn trực tiếp của đợt 6 --- */
+window.__d6=m=>{
+ if(m.t==='hello'){loadMeets();return false}
+ if(m.t==='meet'){if(meetMine(m.meet)&&(!ME||m.meet.uid!==ME.id))toast(m.meet.name+' vừa hẹn '+meetRoomLabel(m.meet.room)+': '+m.meet.title);loadMeets();return true}
+ if(m.t==='delmeet'){loadMeets();return true}
+ if(m.t==='meetnow'){meetNow(m.meet);return true}
+ if(m.t==='sig'){if(bookM&&!bookM.hidden&&$('#bkPad').hidden)loadBook();return true}
+ return false};
+
+/* --- bảng gỗ trước cổng (sổ vàng) và ở nhà xe (thống kê đi học), điểm hẹn --- */
+function signBoard(x,z,rotY,w,h,draw){
+ const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rotY;scene.add(g);const wood=M(0x6b4a33);
+ [-w/2+.15,w/2-.15].forEach(dx=>box(.14,h+1.1,.14,wood,dx,(h+1.1)/2,0,g));
+ const face=new THREE.MeshStandardMaterial({map:ctex(1024,Math.round(1024*h/w),draw),roughness:.8});
+ const p=new THREE.Mesh(new THREE.BoxGeometry(w,h,.1),[wood,wood,wood,wood,face,face]);p.position.set(0,1.05+h/2,0);p.castShadow=true;g.add(p);return g}
+
+/* ---------- ĐỢT 7: quán bia bãi cỏ trái cổng, phố quán net bên phải trường, quán net đầu cầu cũ (TẤT CẢ là MINH HOẠ theo lời sếp) ---------- */
+function netFront(g,w){
+ box(w*.82,2.5,.1,M(0x10131c),0,1.35,.06,g,false);
+ const n=Math.max(2,Math.floor(w*.82/.62));
+ for(let r=0;r<2;r++)for(let i=0;i<n;i++){const x=(i-(n-1)/2)*.6;
+  box(.46,.32,.05,M(0x66aaff,{emissive:0x2a5fd0,emissiveIntensity:.95}),x,.95+r*.6,.14,g,false);box(.12,.1,.06,M(0x222222),x,.72+r*.6,.12,g,false)}
+ [0,1,2].forEach(i=>{const hd=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),M(0x2b2b33));hd.position.set((i-1)*w*.26,.7,.3);g.add(hd);box(.3,.34,.2,M([0xc0392b,0x2980b9,0x27ae60][i]),(i-1)*w*.26,.42,.32,g,false)});
+ box(w+.1,.08,1,M(0xd32f2f),0,2.72,.55,g,false);
+ const bl=new THREE.Mesh(new THREE.PlaneGeometry(.7,1.7),new THREE.MeshStandardMaterial({map:ctex(128,300,(c,ww,hh)=>{c.fillStyle='#1a237e';c.fillRect(0,0,ww,hh);c.fillStyle='#ffeb3b';c.font='700 74px "Be Vietnam Pro", sans-serif';c.textAlign='center';'NET'.split('').forEach((ch,i)=>c.fillText(ch,ww/2,80+i*72));c.fillStyle='#fff';c.font='600 30px "Be Vietnam Pro", sans-serif';c.fillText('GAME',ww/2,hh-16)}),side:THREE.DoubleSide,emissive:0x222222}));
+ bl.position.set(-w/2+.35,3.9,.7);g.add(bl);
+ for(let i=0;i<5;i++){const b=box(.5,.1,.16,M([0x333333,0xa33,0x335,0x363,0x663][i]),-w/2+.6+i*.7,.5,1.3,g,false);b.rotation.y=(i%2?.35:-.3);box(.1,.5,.1,M(0x222222),-w/2+.6+i*.7,.3,1.3,g,false)}
+}
+function netShop(x,z,w,name,col){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);const H=6.6,d=9;
+ box(w-.15,H,d,M(col),0,H/2,-d/2,g);box(w,.25,1.2,M(0xf4efe4),0,3.3,.4,g,false);
+ box(w*.7,1.5,.05,M(0x9fc3d6,{roughness:.3}),0,4.9,.03,g,false);box(w*.8,.08,.9,M(0x555555),0,3.85,.45,g,false);
+ box(w+.2,.5,d+.4,M(0x7a2e22),0,H+.25,-d/2,g,false);
+ if(name){const sgn=new THREE.Mesh(new THREE.PlaneGeometry(w*.92,w*.22),new THREE.MeshStandardMaterial({map:signTex(name,'#1a237e','#ffeb3b',512,128,58)}));sgn.position.set(0,3.0,.1);g.add(sgn);netFront(g,w)}
+ else{box(w*.85,2.6,.05,M(0x8d7a64),0,1.3,.03,g,false);box(w*.7,1.5,.05,M(0x9fc3d6,{roughness:.3}),0,1.7,.05,g,false)}
+ solid.push([x-w/2,x+w/2,z-d,z-.2]);return g}
+function buildDot7(){
+ // 1. QUÁN BIA HƠI trên bãi cỏ bên trái cổng, ngoài mép tường trường
+ {const gx=-76,z0=16.2;zones.push([-90,-63,9,17.5]);const blue=M(0x2f80c2),red=M(0xc62828),stool=M(0x1565c0);
+  box(9.8,.04,3.8,M(0xbdb5a5),gx,.02,14.4,scene,false);
+  const roof=box(10.6,.08,4.2,blue,gx,3.15,14.4,scene,true);roof.rotation.x=.06;
+  [[-4.6,16.0],[4.6,16.0],[-4.6,12.9],[4.6,12.9]].forEach(([a,b])=>box(.1,3.1,.1,M(0x6e6e6e),gx+a,1.55,b,scene,false));
+  box(6.2,1.05,.7,M(0x8d5b3a),gx+1.2,.52,13.3,scene);box(6.2,.06,.8,M(0xd8c3a0),gx+1.2,1.06,13.3,scene,false);
+  [[0,0xb0b6bb],[.7,0xb0b6bb],[1.4,0xb0b6bb]].forEach(([a,c])=>{const k=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.6,12),M(c,{metalness:.6,roughness:.3}));k.position.set(gx-1+a,1.4,13.3);scene.add(k);const t=box(.05,.2,.05,M(0xffd54f),gx-1+a,1.2,13.6,scene,false)});
+  box(.9,1.9,.7,M(0xf2f2f2),gx-4,.95,13.2,scene);box(.7,1.3,.04,M(0xcfe8ff,{roughness:.1,transparent:true,opacity:.6}),gx-4,1.0,13.56,scene,false);
+  const sgn=new THREE.Mesh(new THREE.PlaneGeometry(4.2,1),new THREE.MeshStandardMaterial({map:signTex('BIA HƠI','#c62828','#fff59d',512,128,84),side:THREE.DoubleSide}));sgn.position.set(gx,2.55,z0-.05);scene.add(sgn);
+  const lt=new THREE.Mesh(new THREE.PlaneGeometry(2.2,.5),new THREE.MeshStandardMaterial({map:signTex('Lạc rang · nem chua · ốc','#fff8e1','#c62828',512,110,40),side:THREE.DoubleSide}));lt.position.set(gx+1.2,1.75,13.0);scene.add(lt);
+  for(let i=0;i<3;i++){const x=gx-3.2+i*3.2,z=15.1;box(.95,.05,.95,red,x,.72,z,scene,false);[[-.4,-.4],[.4,-.4],[-.4,.4],[.4,.4]].forEach(([a,b])=>box(.05,.7,.05,M(0xaa2222),x+a,.36,z+b,scene,false));
+   [[-.75,0],[.75,0],[0,-.7],[0,.7]].forEach(([a,b])=>box(.34,.3,.34,stool,x+a,.15,z+b,scene,false));
+   for(let k=0;k<3;k++){const c=new THREE.Mesh(new THREE.CylinderGeometry(.06,.05,.14,10),M(0xf2c94c,{roughness:.2}));c.position.set(x-.2+k*.2,.82,z-.1+(k%2)*.15);scene.add(c)}
+   const pl=new THREE.Mesh(new THREE.CylinderGeometry(.16,.14,.05,12),M(0xffffff));pl.position.set(x+.2,.77,z+.2);scene.add(pl)}
+  npc(gx-3.95,15.1,Math.PI/2,0x546e7a,0x2a2a2a,true);npc(gx-2.45,15.1,-Math.PI/2,0xb34a6a,0x2a2a2a,true);npc(gx+2.45,15.1,Math.PI/2,0x6f8f5a,0x33302d,true);npc(gx+3.95,15.1,-Math.PI/2,0xe0c070,0x2a2a2a,true);
+  npc(gx+1,12.7,0,0xf1f1f1,0x333333,false);
+  solid2.push([gx-4.6,gx+6.4,12.8,13.9]);
+  tagSprite('Quán bia hơi',gx,3.9,z0-.2,.5);
+  acts.push({x:gx,z:15.9,r:3.4,l:'Ngồi quán bia hơi',f:()=>toast('Quán bia hơi trên bãi cỏ trước cổng trường: bàn nhựa đỏ, ghế xanh, đĩa lạc rang, nem chua. Thầy trò cũ ngồi tán chuyện chiều tà. (quán minh hoạ, theo lời sếp)')})}
+ // 2. PHỐ QUÁN NET bên phải trường (nhà dân ngày xưa), mặt quay ra đường
+ {const sh=[[93,5.2,'Net Hoàng Long',0xf3e3b5],[99.2,5.6,0,0xe9c9a0],[105.4,5.2,'Net 24h Vui Vẻ',0xd9e4ea],[111.4,5.6,0,0xf2d0c4],[117.6,5.4,'Net Cầu Vồng',0xf6efe2],[123.6,5.8,0,0xe3e8cf]];
+  sh.forEach(([x,w,nm,c])=>{netShop(x,15.6,w,nm,c);if(nm){tagSprite(nm,x,4.7,17.2,.5);acts.push({x,z:17.8,r:2.8,l:'Vào '+nm,f:()=>toast(nm+': máy chạy rền, mùi mì tôm, cả đám cúi đầu đánh game, tới giờ cơm mẹ réo mới về. (quán net minh hoạ, theo lời sếp: nhà dân ngày xưa)')})}});
+  nameTagG('Dãy nhà dân – quán net','phía tây trường (minh hoạ)',108,8.6,15.6,.9)}
+ const nb=window.__netCB||[-18,85];nameTagG('Quán net đầu cầu cũ','minh hoạ, vị trí đoán',nb[0],9,nb[1],.9);
+ GOTO.splice(5,0,['Quán bia hơi trên bãi cỏ trái cổng',-76,22,0],['Dãy quán net bên phải trường',108,22,0],['Quán net đầu cầu cũ (bờ bắc)',nb[0],68,Math.PI]);
+ $('#goList').innerHTML=GOTO.map((g,i)=>`<button type="button" data-i="${i}">${g[0]}</button>`).join('');
+}
+
+function buildDot6(){
+ signBoard(-2.2,13.8,0,2.6,1.6,(g,w,h)=>{g.fillStyle='#1f4a37';g.fillRect(0,0,w,h);g.strokeStyle='#e8c766';g.lineWidth=18;g.strokeRect(18,18,w-36,h-36);g.textAlign='center';g.fillStyle='#ffe27a';g.font='700 124px "Be Vietnam Pro", sans-serif';g.fillText('SỔ VÀNG',w/2,h*.36);g.fillStyle='#fff';g.font='600 48px "Be Vietnam Pro", sans-serif';g.fillText('Những người đã về thăm trường',w/2,h*.56);g.fillStyle='#f4d68a';g.font='40px "Be Vietnam Pro", sans-serif';g.fillText('Đứng gần, bấm E để xem và ký tên',w/2,h*.76);g.fillText('✍',w/2,h*.92)});
+ signBoard(56,11.6,0,2.6,1.5,(g,w,h)=>{g.fillStyle='#1f4e9a';g.fillRect(0,0,w,h);g.strokeStyle='#f2d36b';g.lineWidth=18;g.strokeRect(18,18,w-36,h-36);g.textAlign='center';g.fillStyle='#ffe27a';g.font='700 92px "Be Vietnam Pro", sans-serif';g.fillText('ĐI HỌC BẰNG GÌ?',w/2,h*.38);g.fillStyle='#fff';g.font='600 46px "Be Vietnam Pro", sans-serif';g.fillText('Xe đạp · xe điện · xe máy · đi bộ',w/2,h*.6);g.fillStyle='#f2d36b';g.font='40px "Be Vietnam Pro", sans-serif';g.fillText('Bấm E để xem thống kê theo khóa',w/2,h*.82)});
+ tagSprite('Điểm hẹn bạn cũ',-7.85,3.7,4.4,.5);
+ acts.push({x:56,z:10,r:3.2,l:'Xem thống kê đi học',f:openVeh},{x:-2.2,z:12,r:3.4,l:'Mở sổ vàng, ký tên',f:openBook});
+ GOTO.splice(1,0,['Sổ vàng cổng trường: xem tên, ký tên',-2.2,9,0],['Điểm hẹn bạn cũ, trước tượng Trạng Trình',-7.85,3.5,Math.PI],['Nhà xe: thống kê đi học bằng gì',56,14.4,Math.PI]);
+ $('#goList').innerHTML=GOTO.map((g,i)=>`<button type="button" data-i="${i}">${g[0]}</button>`).join('');
+ applyBloom();
+}
+
 const fontsReady=Promise.race([Promise.all(['48px "Patrick Hand"','600 48px "Be Vietnam Pro"','700 48px "Dancing Script"'].map(f=>document.fonts?document.fonts.load(f):0)),new Promise(r=>setTimeout(r,3000))]).catch(()=>0);
 fontsReady.then(()=>{
  try{build()}catch(e){console.error(e)}
  try{buildOutside()}catch(e){console.error(e)}
+ try{buildDot6()}catch(e){console.error(e)}
+ try{buildDot7()}catch(e){console.error(e)}
  refreshNotes();resize();requestAnimationFrame(loop);
  const go=$('#go');go.disabled=false;go.textContent='Bước vào trường';
  go.onclick=()=>{audioInit();if(AC)AC.resume();$('#setup').hidden=false;setTimeout(()=>$('#suName').focus(),50)};

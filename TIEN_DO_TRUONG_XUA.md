@@ -134,3 +134,17 @@ Sếp yêu cầu giao diện KHÁC trang THPT Vĩnh Bảo (thpt-vinh-bao.tranngo
 - Số phòng mỗi dãy, vị trí từng lớp, vị trí cầu thang.
 - Các chi tiết nhỏ ghi "minh hoạ" (hàng quán minh hoạ, nội thất lớp).
 - Khu đền: tên các nhà phụ, Am Bạch Vân, nội thất đền, vị trí hàng hương và trò chơi (thực tế bán ở đâu).
+
+## Đợt 6 (15/11/2026, đã làm, đã chạy thử trên máy thử)
+- Đi học bằng gì: chọn khi vào (xe đạp, xe đạp điện, xe máy, đi bộ, đưa đón); nhà xe có bảng "Đi học bằng gì?", bấm E xem thống kê theo khóa. Xe đạp điện có đèn pha, xe máy dựng mô hình mới.
+- Hẹn giờ gặp nhau: nút "Hẹn gặp"; đặt tên, giờ, phòng khóa; tối đa 3 hẹn đang chờ mỗi người, 6 hẹn mỗi ngày. Tới giờ máy chủ báo tất cả người đang online + tiếng trống (báo nếu trễ dưới 10 phút). Hẹn quá 7 ngày tự xoá.
+- Phượng nở / ve kêu theo THÁNG THẬT: phượng nở rộ tháng 6, thưa tháng 5/7/4/8, trụi các tháng khác (tháng 11 là trụi). Nút "Phượng: …" để xem tháng khác; thêm ?thang=6 sau địa chỉ để thử.
+- Tiếng trống tổng hợp tốt hơn (nhiều lớp, vang). Muốn trống thật: sếp thu ~10 giây trống trường thật, đặt tên trong thư mục public là trong.mp3 (trang tự dùng nếu có).
+- Sổ vàng trước cổng (bảng xanh ở x -2,2, z 13,8): danh sách mọi người đã vào, ai cũng ký tên bằng chuột/ngón tay (ảnh PNG ≤ 40KB, 12 lần ký/ngày). /quan-ly: xoá chữ ký, xoá lịch hẹn.
+- Máy chủ mới: /api/vehicles, /api/meets, /api/book, /api/sig (bảng meets, sigs).
+
+## Đợt 7 (15/11/2026, theo lời sếp, TẤT CẢ là minh hoạ, vị trí đoán)
+- Quán bia hơi trên bãi cỏ trái cổng (ngoài mép tường trường): x -81…-71, z 12,8–16,2. Đi được vào trong. Nút "Đi tới… Quán bia hơi".
+- Cafe Mori chuyển ra ngõ Cầu đá mới (bỏ chỗ cũ ở đường Trung Tân z 160): bên ngõ, gần x -62.
+- Dãy quán net bên phải trường (nhà dân ngày xưa): x 93–127, z 6–15,6, 3 quán "Net Hoàng Long", "Net 24h Vui Vẻ", "Net Cầu Vồng" xen 3 nhà dân. "Đi tới… Dãy quán net".
+- Quán net đầu cầu cũ: đặt ở bờ bắc sông, x ≈ -18, z ≈ 85. CÒN HỎI SẾP: "cầu Lý Học cũ" là cầu nào (trong trang mới có cầu Lạng Am trước cổng và cầu Nam Am); sếp chỉ chỗ thì em dời.

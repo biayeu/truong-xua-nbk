@@ -1,12 +1,14 @@
 // Máy chủ "Về thăm trường xưa – THPT Nguyễn Bỉnh Khiêm"
 // Một Durable Object duy nhất ("nbk") giữ toàn bộ dữ liệu trong SQLite:
-// người dùng, lưu bút, tin nhắn, phòng lớp, ảnh (ảnh đại diện, ảnh lớp, ảnh chụp chung), bình chọn đồng phục;
+// người dùng, lưu bút, tin nhắn, phòng lớp, ảnh (ảnh đại diện, ảnh lớp, ảnh chụp chung), bình chọn đồng phục,
+// phương tiện đi học (trong look.veh), hẹn giờ gặp nhau (meets), chữ ký sổ vàng cổng trường (sigs);
 // và giữ các kết nối trực tiếp (ai đang online).
 
 const DAY = 86400000;
 const CHAT_KEEP = 30 * DAY;
 const MAX_NOTE = 200, MAX_MSG = 300;
 const MAX_AVATAR = 80 * 1024;      // ảnh đại diện sau khi trang tự thu nhỏ
+const MAX_SIG = 40 * 1024;         // chữ ký vẽ tay (ảnh PNG nhỏ)
 const MAX_PHOTO = 700 * 1024;      // ảnh lớp / ảnh chụp chung sau khi thu nhỏ
 const KHOA_RE = /^(19|20)\d\d – (19|20)\d\d$/;
 
@@ -19,14 +21,15 @@ const rnd = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); retur
 const pin6 = () => String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
 async function sha(s) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 const okRoom = r => r === 'truong' || KHOA_RE.test(r);
-const LOOK_KEYS = { hair: 12, shoes: 12, acc: 40, uni: 12, skin: 8 };
+const LOOK_KEYS = { hair: 12, shoes: 12, acc: 40, uni: 12, skin: 8, veh: 12 };
 function cleanLook(l) {
   const o = {}; if (!l || typeof l !== 'object') return o;
   for (const k in LOOK_KEYS) if (l[k] != null) o[k] = clean(l[k], LOOK_KEYS[k]).replace(/[^a-z0-9,_-]/gi, '');
   return o;
 }
-function dataUrlBytes(d, max) {
-  const m = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(String(d || ''));
+function dataUrlBytes(d, max, only) {
+  const re = only === 'png' ? /^data:image\/(png);base64,([A-Za-z0-9+/=]+)$/ : /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/;
+  const m = re.exec(String(d || ''));
   if (!m) return null;
   const bin = atob(m[2]); if (bin.length > max) return 'big';
   const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
@@ -66,6 +69,9 @@ export class School extends DurableObject {
         type TEXT, data BLOB, ok INTEGER DEFAULT 0, ts INTEGER);
       CREATE TABLE IF NOT EXISTS uvote(uid TEXT PRIMARY KEY, khoa TEXT, he TEXT, dong TEXT);
       CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
+      CREATE TABLE IF NOT EXISTS meets(id INTEGER PRIMARY KEY AUTOINCREMENT, room TEXT, title TEXT, at INTEGER, uid TEXT, ts INTEGER, done INTEGER DEFAULT 0);
+      CREATE INDEX IF NOT EXISTS meets_at ON meets(done, at);
+      CREATE TABLE IF NOT EXISTS sigs(uid TEXT PRIMARY KEY, type TEXT, data BLOB, ts INTEGER);
       CREATE TABLE IF NOT EXISTS hits(k TEXT, ts INTEGER);
       CREATE INDEX IF NOT EXISTS hits_k ON hits(k, ts);
     `);
@@ -97,6 +103,32 @@ export class School extends DurableObject {
   noteOut(r) { return { id: r.id, uid: r.uid, text: r.text, ts: r.ts, name: r.name, lop: r.lop, khoa: r.khoa, role: r.role }; }
   msgOut(r) { return { id: r.id, room: r.room, uid: r.uid, text: r.text, ts: r.ts, name: r.name, lop: r.lop, khoa: r.khoa, role: r.role }; }
   photoOut(r) { return { id: r.id, uid: r.uid, kind: r.kind, lop: r.lop, khoa: r.khoa, cap: r.cap, ts: r.ts, ok: r.ok, name: r.name }; }
+  meetOut(r) { return { id: r.id, room: r.room, title: r.title, at: r.at, uid: r.uid, name: r.name, lop: r.lop, khoa: r.khoa }; }
+  meetRows(extra) {
+    return this.all("SELECT m.*,u.name,u.lop,u.khoa FROM meets m JOIN users u ON u.id=m.uid WHERE u.banned=0 AND m.at>? " + (extra || '') + " ORDER BY m.at LIMIT 80", Date.now() - 2 * 3600000).map(r => this.meetOut(r));
+  }
+  // đặt báo thức của máy chủ vào giờ hẹn gần nhất chưa báo
+  async schedule() {
+    const n = this.row('SELECT MIN(at) a FROM meets WHERE done=0');
+    if (n && n.a) await this.ctx.storage.setAlarm(Math.max(n.a, Date.now() + 1000));
+  }
+  // tới giờ hẹn: báo cho mọi người đang online (trang của khóa đó sẽ đánh trống và hiện thông báo)
+  async alarm() {
+    const now = Date.now();
+    for (const r of this.all("SELECT m.*,u.name,u.lop,u.khoa FROM meets m JOIN users u ON u.id=m.uid WHERE m.done=0 AND m.at<=?", now)) {
+      this.sql.exec('UPDATE meets SET done=1 WHERE id=?', r.id);
+      if (now - r.at < 10 * 60000) this.broadcast({ t: 'meetnow', meet: this.meetOut(r) });
+    }
+    this.sql.exec('DELETE FROM meets WHERE at<?', now - 7 * DAY);
+    await this.schedule();
+  }
+  vehicleStats() {
+    const out = {};
+    for (const r of this.all("SELECT khoa, COALESCE(json_extract(look,'$.veh'),'xedap') v, COUNT(*) n FROM users WHERE banned=0 AND role='hs' AND khoa<>'' AND json_valid(look) AND json_extract(look,'$.veh') IS NOT NULL GROUP BY khoa, v")) {
+      (out[r.khoa] = out[r.khoa] || {})[r.v] = r.n;
+    }
+    return out;
+  }
   uniformVotes() {
     const out = {};
     for (const v of this.all('SELECT v.khoa,v.he,v.dong FROM uvote v JOIN users u ON u.id=v.uid WHERE u.banned=0')) {
@@ -139,6 +171,19 @@ export class School extends DurableObject {
           return json({ people });
         }
         if (path === '/uniform') return json({ votes: this.uniformVotes() });
+        if (path === '/vehicles') return json({ stats: this.vehicleStats() });
+        if (path === '/meets') return json({ meets: this.meetRows(), now: Date.now() });
+        if (path === '/book') {
+          // sổ vàng cổng trường: tất cả người đã từng vào (kèm chữ ký nếu có)
+          const people = this.all("SELECT u.id,u.name,u.lop,u.khoa,u.role,u.ts,s.ts sg FROM users u LEFT JOIN sigs s ON s.uid=u.id WHERE u.banned=0 ORDER BY u.ts DESC LIMIT 400");
+          const total = this.row('SELECT COUNT(*) c FROM users WHERE banned=0').c;
+          return json({ people, total });
+        }
+        if (path === '/sig') {
+          const r = this.row('SELECT s.type,s.data FROM sigs s JOIN users u ON u.id=s.uid WHERE s.uid=? AND u.banned=0', String(url.searchParams.get('id') || ''));
+          if (!r) return new Response('', { status: 404 });
+          return new Response(r.data, { headers: { 'content-type': r.type, 'cache-control': 'public, max-age=3600' } });
+        }
         if (path === '/avatar') {
           const r = this.row('SELECT a.type,a.data FROM avatars a JOIN users u ON u.id=a.uid WHERE a.uid=? AND u.banned=0', String(url.searchParams.get('id') || ''));
           if (!r) return new Response('', { status: 404 });
@@ -276,6 +321,36 @@ export class School extends DurableObject {
         this.sql.exec('INSERT INTO rclaims(room,khoa,lop,uid,ts) VALUES(?,?,?,?,?)', room, khoa, lop, me.id, Date.now());
         this.broadcast({ t: 'rooms' }); return json({ ok: true });
       }
+      if (path === '/meets') {
+        const room = String(b.room || ''); if (!okRoom(room)) return json({ error: 'Bạn chọn khóa nhé.' }, 400);
+        const title = clean(b.title, 60) || 'Gặp nhau ở sân trường';
+        const at = Number(b.at), now = Date.now();
+        if (!isFinite(at) || at < now - 60000 || at > now + 30 * DAY) return json({ error: 'Giờ hẹn phải từ bây giờ tới 30 ngày nữa nhé.' }, 400);
+        if (this.row('SELECT COUNT(*) c FROM meets WHERE uid=? AND at>?', me.id, now - 2 * 3600000).c >= 3) return json({ error: 'Mỗi người đang có tối đa 3 hẹn, bạn gỡ bớt một hẹn cũ nhé.' }, 429);
+        if (!this.limit('meet:' + me.id, 6, DAY)) return json({ error: 'Hôm nay bạn đặt nhiều hẹn quá, mai đặt tiếp nhé.' }, 429);
+        const r = this.row('INSERT INTO meets(room,title,at,uid,ts) VALUES(?,?,?,?,?) RETURNING id', room, title, Math.round(at), me.id, now);
+        await this.schedule();
+        const meet = this.meetOut(Object.assign({}, me, { id: r.id, room, title, at: Math.round(at), uid: me.id }));
+        this.broadcast({ t: 'meet', meet });
+        return json({ meet });
+      }
+      if (path === '/meets/del') {
+        const id = Number(b.id), m = this.row('SELECT uid FROM meets WHERE id=?', id);
+        if (!m || m.uid !== me.id) return json({ error: 'Không gỡ được hẹn này.' }, 403);
+        this.sql.exec('DELETE FROM meets WHERE id=?', id); this.broadcast({ t: 'delmeet', id });
+        return json({ ok: true });
+      }
+      if (path === '/sig') {
+        if (b.data === null) { this.sql.exec('DELETE FROM sigs WHERE uid=?', me.id); return json({ ok: true }); }
+        const img = dataUrlBytes(b.data, MAX_SIG, 'png');
+        if (!img) return json({ error: 'Chữ ký không đúng định dạng.' }, 400);
+        if (img === 'big') return json({ error: 'Chữ ký quá lớn, bạn ký đơn giản hơn nhé.' }, 413);
+        if (!this.limit('sg:' + me.id, 12, DAY)) return json({ error: 'Hôm nay bạn ký nhiều lần quá, mai ký tiếp nhé.' }, 429);
+        const now = Date.now();
+        this.sql.exec('INSERT OR REPLACE INTO sigs(uid,type,data,ts) VALUES(?,?,?,?)', me.id, img.type, img.bytes.buffer, now);
+        this.broadcast({ t: 'sig', id: me.id, ts: now });
+        return json({ ok: true, ts: now });
+      }
       if (path === '/uniform') {
         if (!me.khoa) return json({ error: 'Bạn chưa chọn niên khóa.' }, 400);
         const he = clean(b.he, 12).replace(/[^a-z0-9_-]/gi, ''), dong = clean(b.dong, 12).replace(/[^a-z0-9_-]/gi, '');
@@ -313,7 +388,8 @@ export class School extends DurableObject {
         const users = this.all("SELECT id,name,lop,khoa,role,banned,av,ts,(SELECT COUNT(*) FROM notes n WHERE n.uid=users.id) nc FROM users WHERE (?='' OR name LIKE ? OR lop LIKE ?) ORDER BY ts DESC LIMIT 300", q, like, like);
         const photos = this.all("SELECT p.id,p.uid,p.kind,p.lop,p.khoa,p.cap,p.ts,p.ok,u.name FROM photos p JOIN users u ON u.id=p.uid ORDER BY p.ok ASC, p.id DESC LIMIT 200").map(r => this.photoOut(r));
         const pending = this.row('SELECT COUNT(*) c FROM photos WHERE ok=0').c;
-        return json({ notes, msgs, users, photos, pending, claims: this.roomClaims() });
+        const sigs = this.all('SELECT uid,ts FROM sigs');
+        return json({ notes, msgs, users, photos, pending, claims: this.roomClaims(), meets: this.meetRows(), sigs });
       }
       case 'delNote': this.sql.exec('DELETE FROM notes WHERE id=?', Number(b.id)); this.broadcast({ t: 'delnote', id: Number(b.id) }); return json({ ok: true });
       case 'delMsg': this.sql.exec('DELETE FROM msgs WHERE id=?', Number(b.id)); this.broadcast({ t: 'delmsg', id: Number(b.id) }); return json({ ok: true });
@@ -328,10 +404,13 @@ export class School extends DurableObject {
         this.sql.exec('UPDATE users SET banned=1 WHERE id=?', id);
         this.sql.exec('DELETE FROM notes WHERE uid=?', id); this.sql.exec('DELETE FROM msgs WHERE uid=?', id);
         this.sql.exec('DELETE FROM photos WHERE uid=?', id); this.sql.exec('DELETE FROM avatars WHERE uid=?', id); this.sql.exec('DELETE FROM uvote WHERE uid=?', id);
+        this.sql.exec('DELETE FROM sigs WHERE uid=?', id); this.sql.exec('DELETE FROM meets WHERE uid=?', id);
         this.broadcast({ t: 'banned', id });
         for (const ws of this.ctx.getWebSockets()) { const a = ws.deserializeAttachment(); if (a && a.u && a.u.id === id) try { ws.close(4003, 'banned'); } catch (e) { } }
         return json({ ok: true });
       }
+      case 'delSig': this.sql.exec('DELETE FROM sigs WHERE uid=?', String(b.id)); this.broadcast({ t: 'sig', id: String(b.id), ts: 0 }); return json({ ok: true });
+      case 'delMeet': this.sql.exec('DELETE FROM meets WHERE id=?', Number(b.id)); this.broadcast({ t: 'delmeet', id: Number(b.id) }); return json({ ok: true });
       case 'roomDel': this.sql.exec('DELETE FROM rclaims WHERE room=? AND khoa=?', String(b.room), String(b.khoa)); this.broadcast({ t: 'rooms' }); return json({ ok: true });
       case 'roomEdit': {
         const lop = normLop(b.lop); if (!lop) return json({ error: 'Thiếu tên lớp.' }, 400);
