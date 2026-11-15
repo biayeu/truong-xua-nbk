@@ -421,7 +421,8 @@ function audioInit(){
  const scale=[196,220,246.9,293.7,329.6,392,440,493.9,587.3];const bass=[98,82.4,130.8,146.8];
  let next=AC.currentTime+.3,idx=4,beat=0;
  function tone(f,t,dur,vol,type){const o=AC.createOscillator();o.type=type;o.frequency.value=f;const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.03);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(bus);o.start(t);o.stop(t+dur+.05)}
- musicT=setInterval(()=>{while(next<AC.currentTime+.6){if(beat%8===0)tone(bass[(beat/8|0)%4],next,3.6,.5,'sine');if(Math.random()>.22){idx=Math.max(0,Math.min(scale.length-1,idx+[-2,-1,-1,1,1,2][Math.random()*6|0]));tone(scale[idx],next,1.9,.42,'triangle')}next+=.75;beat++}},200);
+ /* ĐỢT 11: TẮT nhạc nền tự tạo (sếp báo nghe nhạc ở mọi nơi); chỉ còn tiếng thật. Muốn nghe nhạc thì bấm nút Nhạc trường. */
+ musicT=setInterval(()=>{if(!window.__bgMusic)return;while(next<AC.currentTime+.6){if(beat%8===0)tone(bass[(beat/8|0)%4],next,3.6,.5,'sine');if(Math.random()>.22){idx=Math.max(0,Math.min(scale.length-1,idx+[-2,-1,-1,1,1,2][Math.random()*6|0]));tone(scale[idx],next,1.9,.42,'triangle')}next+=.75;beat++}},200);
 }
 function drumReverb(){
  if(drumRev)return drumRev;const len=Math.floor(AC.sampleRate*1.8),buf=AC.createBuffer(2,len,AC.sampleRate);
