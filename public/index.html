@@ -50,6 +50,15 @@ a{color:var(--y)}
 .chip.sm{min-height:35px;padding:0 12px;font-size:14px}
 .chip.dot{border-color:var(--green);color:var(--green);background:rgba(166,227,181,.1)}
 
+
+/* ---- nút nổi: Chat + Mời bạn bè (dễ thấy) ---- */
+#fab{position:fixed;right:14px;top:14px;z-index:8;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+#fab button{min-height:46px;padding:0 16px;font-size:15.5px;font-weight:700;border-radius:24px;border:3px solid var(--wood);box-shadow:0 4px 14px rgba(0,0,0,.45);cursor:pointer;font-family:inherit;white-space:nowrap}
+#fabChat{background:var(--y);color:#1b2b23}
+#fabShare{background:#2e7d5b;color:#fff}
+#shareT{width:100%;min-height:96px;font:inherit;font-size:14.5px;padding:10px;border-radius:8px;border:2px solid var(--line);background:rgba(255,255,255,.07);color:inherit;resize:none}
+@media(max-width:700px){#fab{top:max(150px,calc(env(safe-area-inset-top) + 140px));right:8px}#fab button{min-height:42px;font-size:14.5px;padding:0 13px}}
+
 /* ---- bản đồ nhỏ ---- */
 #mini{position:fixed;left:12px;bottom:max(12px,env(safe-area-inset-bottom));width:172px;height:172px;border-radius:2px;border:7px solid var(--wood);box-shadow:inset 0 0 0 2px var(--wood2),0 6px 18px rgba(0,0,0,.4);z-index:5;cursor:pointer;background:#9fb27a}
 
@@ -2709,7 +2718,8 @@ const gotoMeet=()=>{$('#goto').hidden=true;if(inRoom)leaveRoom();setMode('walk')
  ['bGo','🧭 Đi tới…','Nhảy ngay tới: Sổ vàng, nhà xe, quán bia hơi, cafe Mori, quán chè, quán net, ăn đêm Cầu Nam Am, chợ, cầu, Đền Trạng Trình…'],
  ['bPhoto','📷 Chụp ảnh chung','Chụp ảnh cùng bạn bè trong trường rồi lưu về máy. (Ảnh do bạn chụp, không lấy ảnh có bản quyền)'],
  ['bGb','📝 Lưu bút','Viết lời nhắn treo lên cây phượng, đọc lời của bạn bè.'],
- ['bOn','💬 Chat · online','Xem ai đang online, nhắn chung hoặc nhắn theo quán.'],
+ ['bOn','💬 Chat · online','Xem ai đang online, nhắn chung hoặc nhắn theo quán. (Nút vàng 💬 luôn nổi ở góc màn hình)'],
+ ['fabShare','📨 Mời bạn bè','Gửi liên kết cho bạn cũ qua Zalo, Messenger, Facebook để cùng về trường.'],
  ['bSo','📒 Sổ lớp','Danh sách bạn theo niên khoá và lớp. (Vào trường bằng tên thật mới dùng được)'],
  ['bMeet','⏰ Hẹn gặp','Hẹn cả lớp cùng vào trường một giờ nhất định.'],
  ['bFind','🔎 Tìm lớp','Tìm bạn cũ theo lớp và niên khoá.'],
@@ -2729,6 +2739,21 @@ const gotoMeet=()=>{$('#goto').hidden=true;if(inRoom)leaveRoom();setMode('walk')
  let shown=false;try{shown=!!localStorage.getItem('nbkGuide11')}catch(_){}
  if(!shown){const iv=setInterval(()=>{if(mode!=='intro'&&!anyModal()){clearInterval(iv);try{localStorage.setItem('nbkGuide11','1')}catch(_){}setTimeout(()=>{if(!anyModal())openG()},1800)}},800)}
 }
+
+
+/* ---------- ĐỢT 11: NÚT NỔI "Chat" + "Mời bạn bè" ---------- */
+{const fab=document.createElement('div');fab.id='fab';fab.hidden=true;
+ fab.innerHTML='<button id="fabChat" type="button">💬 Chat</button><button id="fabShare" type="button">📨 Mời bạn bè</button>';document.body.appendChild(fab);
+ const link=location.origin+location.pathname.replace(/index\.html$/,'');
+ const msg='Về thăm trường xưa: trường THPT Nguyễn Bỉnh Khiêm (Lý Học, Vĩnh Bảo, Hải Phòng) bản 3D. Vào đi dạo sân trường, viết lưu bút, chat với bạn cũ nhé: '+link;
+ const sm=mkModal('shareM','<div class="head"><h2 class="hand">Mời bạn bè cùng về trường</h2><button class="chip" data-close>Đóng</button></div><p class="small" style="margin:6px 0 10px">Gửi lời mời này cho bạn cũ qua Zalo, Messenger, Facebook…</p><textarea id="shareT" readonly></textarea><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"><button class="chip hot" id="shGo" type="button">📤 Gửi cho bạn (Zalo, Messenger…)</button><button class="chip" id="shCp" type="button">📋 Sao chép lời mời</button><button class="chip" id="shFb" type="button">Facebook</button></div>');
+ const cp=async()=>{try{await navigator.clipboard.writeText(msg);toast('Đã sao chép lời mời. Dán vào Zalo hoặc Messenger rồi gửi cho bạn nhé.')}catch(_){const t=$('#shareT');t.select();try{document.execCommand('copy');toast('Đã sao chép lời mời. Dán vào Zalo hoặc Messenger rồi gửi cho bạn nhé.')}catch(e){toast('Bạn bấm giữ vào khung chữ rồi chọn Sao chép nhé.')}}};
+ $('#fabShare').onclick=()=>{$('#shareT').value=msg;sm.hidden=false};
+ $('#shGo').onclick=async()=>{if(navigator.share){try{await navigator.share({title:'Về thăm trường xưa',text:msg.replace(link,'').trim(),url:link})}catch(_){}}else cp()};
+ $('#shCp').onclick=cp;$('#shFb').onclick=()=>window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(link),'_blank','noopener');
+ $('#fabChat').onclick=()=>{const b=$('#bOn');if(b&&!b.hidden)b.click();else toast('Bạn cần vào trường bằng tên thật mới chat được. Bấm "Nhân vật" để đặt tên nhé.')};
+ const sync=()=>{const b=$('#bOn');fab.hidden=(mode==='intro')||!document.getElementById('bar')||document.getElementById('bar').hidden;if(b&&!b.hidden){const m=(b.textContent||'').match(/online\s*(\d+)/);$('#fabChat').textContent='💬 Chat'+(m?' · '+m[1]+' online':'')}else $('#fabChat').textContent='💬 Chat'};
+ setInterval(sync,1000);sync();window.__openShare=()=>{$('#shareT').value=msg;sm.hidden=false}}
 
 /* --- thống kê đi học bằng gì (số liệu do bạn bè tự chọn) --- */
 let vehM=null;
