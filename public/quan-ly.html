@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Quản lý – Về thăm trường xưa</title>
+<link rel="icon" href="favicon.png">
+<style>
+:root{--ink:#2a211b;--paper:#fbf6ea;--red:#b3261e;--line:#e3d6bd;--blue:#1f4e9a}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper)}
+header{background:var(--blue);color:#fff;padding:14px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+header h1{font-size:19px;margin:0;flex:1}
+main{max-width:900px;margin:0 auto;padding:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
+input{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;width:100%;max-width:340px}
+button{font:inherit;border:0;border-radius:10px;padding:9px 14px;cursor:pointer;background:#eee6d4;color:var(--ink)}
+button.pri{background:var(--blue);color:#fff}button.red{background:var(--red);color:#fff}button.ok{background:#2c7a5c;color:#fff}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.tabs button.on{background:var(--ink);color:#fff}
+.item{border-bottom:1px solid var(--line);padding:10px 0;display:flex;gap:10px;align-items:flex-start}
+.item .t{flex:1;min-width:0}.item p{margin:4px 0;word-wrap:break-word}
+.small{font-size:13px;color:#7a6a5c}
+.ph{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.ph .c{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.ph img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#eee}
+.ph .c div{padding:8px}
+.badge{display:inline-block;background:var(--red);color:#fff;border-radius:20px;padding:0 8px;font-size:13px;margin-left:4px}
+.av{width:36px;height:36px;border-radius:50%;object-fit:cover;background:#eee}
+#msg{color:var(--red)}
+</style>
+</head>
+<body>
+<header><h1>Quản lý · Về thăm trường xưa</h1><a href="/" style="color:#fff">Về trang trường</a><button id="out" hidden>Thoát</button></header>
+<main>
+ <div id="login" class="card" hidden>
+  <h2 id="lgT" style="margin-top:0">Đăng nhập</h2>
+  <p id="lgX" class="small"></p>
+  <input id="pass" type="password" placeholder="Mật khẩu quản lý" autocomplete="current-password">
+  <div id="pass2W" hidden style="margin-top:8px"><input id="pass2" type="password" placeholder="Nhập lại mật khẩu"></div>
+  <p><button class="pri" id="lgGo">Vào</button></p>
+  <p id="msg"></p>
+ </div>
+ <div id="app" hidden>
+  <div class="card">
+   <input id="q" placeholder="Tìm theo tên, lớp hoặc chữ trong lời nhắn"> <button id="qGo">Tìm</button> <button id="reload">Tải lại</button>
+   <div class="tabs" id="tabs">
+    <button data-t="photos" class="on">Ảnh chờ duyệt<span id="pend"></span></button>
+    <button data-t="notes">Lời nhắn</button><button data-t="msgs">Tin chat</button><button data-t="users">Người dùng</button><button data-t="rooms">Phòng học</button><button data-t="pass">Đổi mật khẩu</button>
+   </div>
+  </div>
+  <div class="card" id="body"></div>
+ </div>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const when=t=>new Date(t).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'numeric',year:'numeric'});
+const sub=x=>[x.role==='gv'?'Thầy/Cô':'',x.lop?'Lớp '+x.lop:'',x.khoa?'Khóa '+x.khoa:''].filter(Boolean).join(' · ');
+let PASS=sessionStorage.getItem('nbk-admin')||'',D=null,tab='photos';
+async function call(b){const r=await fetch('/api/admin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Lỗi mạng');return j}
+async function start(){
+ if(PASS){try{await call({action:'login',pass:PASS});return open()}catch(e){PASS='';sessionStorage.removeItem('nbk-admin')}}
+ const s=await call({action:'status'}).catch(()=>({claimed:true}));
+ $('#login').hidden=false;
+ if(!s.claimed){$('#lgT').textContent='Đặt mật khẩu quản lý (lần đầu)';$('#lgX').textContent='Chưa ai đặt mật khẩu. Sếp đặt ngay một mật khẩu ít nhất 8 ký tự và ghi lại cẩn thận: quên là không lấy lại được qua trang.';$('#pass2W').hidden=false;$('#lgGo').textContent='Đặt mật khẩu';$('#lgGo').dataset.claim=1}
+ else $('#lgX').textContent='Nhập mật khẩu quản lý đã đặt.';
+}
+$('#lgGo').onclick=async()=>{const p=$('#pass').value;$('#msg').textContent='';
+ try{if($('#lgGo').dataset.claim){if(p!==$('#pass2').value)throw new Error('Hai lần nhập không giống nhau.');await call({action:'claim',pass:p})}
+  await call({action:'login',pass:p});PASS=p;sessionStorage.setItem('nbk-admin',p);$('#login').hidden=true;open()}catch(e){$('#msg').textContent=e.message}};
+$('#pass').addEventListener('keydown',e=>{if(e.key==='Enter')$('#lgGo').click()});
+async function open(){$('#app').hidden=false;$('#out').hidden=false;await load()}
+async function load(){try{D=await call({action:'list',pass:PASS,q:$('#q').value.trim()})}catch(e){$('#body').innerHTML='<p>'+esc(e.message)+'</p>';return}
+ $('#pend').innerHTML=D.pending?'<span class="badge">'+D.pending+'</span>':'';render()}
+function render(){const B=$('#body');
+ if(tab==='photos'){B.innerHTML=D.photos.length?'<p class="small">Ảnh lớp và ảnh chụp chung bạn bè gửi. Ảnh chỉ hiện trên bảng tin lớp sau khi sếp bấm "Cho hiện".</p><div class="ph">'+D.photos.map(p=>`<div class="c"><a href="/api/photo?id=${p.id}&pass=${encodeURIComponent(PASS)}" target="_blank"><img loading="lazy" src="/api/photo?id=${p.id}&pass=${encodeURIComponent(PASS)}" alt=""></a><div><b>${esc(p.name)}</b><br><span class="small">${p.kind==='chung'?'Ảnh chụp chung':'Ảnh lớp'} · ${p.lop?'Lớp '+esc(p.lop)+' · ':''}${esc(p.khoa||'')} · ${when(p.ts)}</span>${p.cap?'<p>'+esc(p.cap)+'</p>':''}<p>${p.ok?'<span class="small">✓ Đang hiện</span>':`<button class="ok" data-a="photoOk" data-id="${p.id}">Cho hiện</button>`} <button class="red" data-a="photoDel" data-id="${p.id}">Xoá</button></p></div></div>`).join('')+'</div>':'<p>Chưa có ảnh nào.</p>'}
+ else if(tab==='notes')B.innerHTML=D.notes.length?D.notes.map(n=>`<div class="item"><div class="t"><b>${esc(n.name)}</b> <span class="small">${esc(sub(n))} · ${when(n.ts)}</span><p>${esc(n.text)}</p></div><button class="red" data-a="delNote" data-id="${n.id}">Xoá</button></div>`).join(''):'<p>Chưa có lời nhắn.</p>';
+ else if(tab==='msgs')B.innerHTML=D.msgs.length?D.msgs.map(n=>`<div class="item"><div class="t"><b>${esc(n.name)}</b> <span class="small">${n.room==='truong'?'Toàn trường':'Phòng khóa '+esc(n.room)} · ${when(n.ts)}</span><p>${esc(n.text)}</p></div><button class="red" data-a="delMsg" data-id="${n.id}">Xoá</button></div>`).join(''):'<p>Chưa có tin nhắn.</p>';
+ else if(tab==='users')B.innerHTML=D.users.map(u=>`<div class="item">${u.av?`<img class="av" src="/api/avatar?id=${u.id}&v=${u.av}" alt="">`:'<span class="av"></span>'}<div class="t"><b>${esc(u.name)}</b>${u.banned?' <span class="badge">Đã chặn</span>':''}<br><span class="small">${esc(sub(u))} · ${u.nc} lời nhắn · vào ${when(u.ts)}</span></div>${u.av?`<button data-a="delAvatar" data-id="${u.id}">Xoá ảnh</button>`:''}${u.banned?`<button data-a="unban" data-id="${u.id}">Bỏ chặn</button>`:`<button class="red" data-a="ban" data-id="${u.id}">Chặn</button>`}</div>`).join('')||'<p>Chưa có ai.</p>';
+ else if(tab==='rooms')B.innerHTML='<p class="small">Phòng do người đến trước tự nhận (mỗi phòng, mỗi khóa một lớp). Người nhận tự sửa/bỏ được trong 24 giờ; sau đó sếp sửa ở đây. Mã phòng: chữ đầu là dãy (C dãy chính, D dãy phía Đông, T dọc phía Tây, E dọc phía Đông, G góc Đông Bắc), số sau là tầng.</p>'+((D.claims||[]).length?(D.claims||[]).slice().sort((a,b)=>a.room<b.room?-1:1).map(c=>`<div class="item"><div class="t"><b>Lớp ${esc(c.lop)}</b> · khóa ${esc(c.khoa)} <span class="small">· phòng ${esc(c.room)} · ${esc(c.name||'')} nhận lúc ${when(c.ts)}</span></div><button data-a="roomEdit" data-room="${esc(c.room)}" data-khoa="${esc(c.khoa)}" data-lop="${esc(c.lop)}">Sửa lớp</button><button class="red" data-a="roomDel" data-room="${esc(c.room)}" data-khoa="${esc(c.khoa)}">Bỏ</button></div>`).join(''):'<p>Chưa có phòng nào được nhận.</p>');
+ else if(tab==='pass')B.innerHTML='<p>Mật khẩu mới (ít nhất 8 ký tự):</p><input id="np" type="password"> <button class="pri" id="npGo">Đổi</button><p id="npM" class="small"></p>';
+}
+$('#tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));render()};
+$('#body').onclick=async e=>{
+ if(e.target.id==='npGo'){const np=$('#np').value;try{await call({action:'resetPass',pass:PASS,newPass:np});PASS=np;sessionStorage.setItem('nbk-admin',np);$('#npM').textContent='Đã đổi mật khẩu.'}catch(err){$('#npM').textContent=err.message}return}
+ const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
+ if(a==='ban'&&!confirm('Chặn người này? Mọi lời nhắn, tin chat, ảnh của họ sẽ bị xoá.'))return;
+ if((a==='delNote'||a==='delMsg'||a==='photoDel')&&!confirm('Xoá mục này?'))return;
+ let extra={};if(a==='roomDel'&&!confirm('Bỏ lớp này khỏi phòng?'))return;
+ if(a==='roomEdit'){const l=prompt('Tên lớp mới (ví dụ 12A1):',b.dataset.lop);if(!l)return;extra={lop:l}}
+ try{await call(Object.assign({action:a,pass:PASS,id:b.dataset.id,room:b.dataset.room,khoa:b.dataset.khoa},extra));load()}catch(err){alert(err.message)}};
+$('#qGo').onclick=load;$('#q').addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+$('#reload').onclick=load;$('#out').onclick=()=>{sessionStorage.removeItem('nbk-admin');location.reload()};
+start();
+</script>
+</body>
+</html>
