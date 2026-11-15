@@ -171,3 +171,9 @@ Sếp yêu cầu giao diện KHÁC trang THPT Vĩnh Bảo (thpt-vinh-bao.tranngo
 - Vùng âm thanh: lop/cao/bia/net/cafe/den/san/duong, hàm window.__zone(). Ve theo tháng/giờ. Giọng đọc tiếng Việt chỉ khi trình duyệt có.
 - Người đi đường: kid .8, nữ .96; chân tự nâng theo mặt cầu (groundAt).
 - Chưa kiểm: độ to nhỏ thật bằng tai, chạy trên điện thoại.
+
+## Đợt 12 (nhánh lua-trai, chưa gộp main)
+- Lửa trại sân trường 17h30–22h30, 12 cụm trại/6 kiểu (ai đến trước nhận trước, 15 phút không hoạt động thì nhả), chọn nhạc MV chính thức; xích mích học sinh chỉ ban ngày (6h30–17h30).
+- Nhà nước (nước uống sạch) ở (36.5,-27); nhà vệ sinh Đông (49,-27), Tây (-43,-27) — vị trí đoán theo chỗ sếp đứng trong ảnh, chưa kiểm ảnh vệ tinh.
+- Dãy phòng thầy cô (HT, PHT, văn thư, kế toán, họp chung, nghỉ GV, giám thị) x -62..-36, z -58; dãy chức năng (y tế, Đoàn Đội, kho thể dục, căng tin) x -35..-20; thư viện + truyền thống (-38, 9.8) sau hàng quán cổng. Tất cả là MINH HOẠ (đoán), nhìn qua cửa kính, chưa đi vào trong.
+- Sân vận động phía sau: sọc cỏ, vạch sân, đường chạy 4 làn, hố nhảy xa, khán đài, cờ, đèn sân, bảng điểm, lều, vận động viên chạy.

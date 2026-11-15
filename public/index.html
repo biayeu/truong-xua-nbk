@@ -3550,7 +3550,7 @@ function buildDot9(){
 /* ---------- ĐỢT 13 (15/11/2026): LỬA TRẠI SÂN TRƯỜNG buổi tối (17h30–22h30) – đống lửa lớn, 12 cụm trại ai đến trước nhận trước,
    6 kiểu trang trí tự chọn, người ngồi quanh lửa, nhạc do người chọn (MV chính chủ trên YouTube). Cảnh và hàng quán là MINH HOẠ. ---------- */
 function buildNuoc(){
- const CX=12,CZ=-26.2,W=7.4,D=4.6;
+ const CX=36.5,CZ=-27,W=7.4,D=4.6;
  const g=new THREE.Group();g.position.set(CX,0,CZ);scene.add(g);
  const mc={};const MC=(c,o)=>o?M(c,o):(mc[c]||(mc[c]=M(c)));
  const bx=(w,h,d,m,x,y,z,p)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);(p||g).add(o);return o};
@@ -3598,6 +3598,172 @@ function buildNuoc(){
  solid.push([CX-W/2-.2,CX+W/2+.2,CZ-D/2-.1,CZ-D/2+1.2]);
  acts.push({x:CX,z:CZ+D/2+1.2,r:3,l:'💧 Uống nước',f:()=>toast('Nước lọc mát lạnh, ly inox đầy ắp. Uống xong ra sân đá cầu tiếp!')});
  try{GOTO.push(['💧 Nhà nước (nước uống sạch)',CX,CZ+D/2+4,Math.PI]);const e=$('#goList');if(e)e.innerHTML=GOTO.map((q,i)=>`<button type="button" data-i="${i}">${q[0]}</button>`).join('')}catch(_){}
+}
+/* ===== Đợt 12: dãy phòng hành chính, thư viện, nhà vệ sinh, sân vận động ===== */
+function buildExtra(){
+ const mc={};const MC=(c,o)=>o?M(c,o):(mc[c]||(mc[c]=M(c)));
+ const BM=(c)=>new THREE.MeshBasicMaterial({color:c});
+ const mk=(g)=>{const bx=(w,h,d,m,x,y,z,p)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.receiveShadow=true;(p||g).add(o);return o};
+  const cy=(r1,r2,h,m,x,y,z,p,s=12)=>{const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,s),m);o.position.set(x,y,z);(p||g).add(o);return o};return{bx,cy}};
+ const sign=(text,w,h,bg,fg,fs)=>{const T=ctex(Math.round(w*200),Math.round(h*200),(c,W,H)=>{c.fillStyle=bg;c.fillRect(0,0,W,H);c.strokeStyle=fg;c.lineWidth=5;c.strokeRect(6,6,W-12,H-12);c.fillStyle=fg;c.font='700 '+(fs||48)+'px "Be Vietnam Pro",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(text,W/2,H/2+2)});return new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:T}))};
+ const roofHip=(g,W,D,y,over,col)=>{const r=new THREE.Mesh(new THREE.ConeGeometry(1,1,4,1),MC(col||0xb5472f,{roughness:.8}));r.rotation.y=Math.PI/4;r.scale.set((W+over)/1.4142,1.3,(D+over)/1.4142);r.position.y=y+.65;g.add(r);return r};
+ const night=()=>{const h=hourNow();return h>=17.5||h<5.5};
+ const addLight=(g,x,y,z,k)=>{const l=new THREE.PointLight(0xffe6b0,0,k||14,1.6);l.position.set(x,y,z);g.add(l);anim.push(()=>{l.intensity=night()?1.5:0});return l};
+ const go=(n,x,z,yw)=>GOTO.push([n,x,z,yw]);
+ const refreshGo=()=>{try{const e=$('#goList');if(e)e.innerHTML=GOTO.map((q,i)=>`<button type="button" data-i="${i}">${q[0]}</button>`).join('')}catch(_){}};
+ const glass=new THREE.MeshStandardMaterial({color:0x9cd0e2,roughness:.1,metalness:.2,transparent:true,opacity:.3});
+ // ---------- nội thất theo loại phòng (toạ độ trong phòng, gốc giữa phòng, z âm = phía trong) ----------
+ const furn={
+  ht:(g,x,w,z0)=>{const{bx}=mk(g);bx(1.6,.08,.8,MC(0x6a4429),x,.8,z0+1.2);bx(1.4,.75,.7,MC(0x57391f),x,.4,z0+1.2);bx(.5,.5,.5,MC(0x2b2b2b),x,.3,z0+2.0);bx(.9,2,.35,MC(0x7a5233),x-w/2+.7,1,z0+.35);const f=sign('',.5,.33,'#c8102e','#ffdf00');f.position.set(x+w/2-.6,1.9,z0+.1);g.add(f)},
+  pht:(g,x,w,z0)=>furn.ht(g,x,w,z0),
+  vt:(g,x,w,z0)=>{const{bx}=mk(g);bx(1.3,.08,.7,MC(0x7a5233),x,.78,z0+1.2);bx(.9,.8,.6,MC(0x8a8a8a),x+w/2-.7,.4,z0+.5);bx(.9,.8,.6,MC(0x8a8a8a),x+w/2-.7,1.2,z0+.5);bx(.4,.3,.3,MC(0x333),x,.98,z0+1.2)},
+  kt:(g,x,w,z0)=>furn.vt(g,x,w,z0),
+  hop:(g,x,w,z0)=>{const{bx}=mk(g);bx(w-1.6,.08,1.1,MC(0x6a4429),x,.78,z0+2.6);for(let i=0;i<5;i++)[-1,1].forEach(s=>bx(.4,.45,.4,MC(0x2e5b8a),x-(w-2.4)/2+i*(w-2.4)/4,.28,z0+2.6+s*.85));bx(w-1.2,1.1,.06,MC(0xf4f4f0),x,1.7,z0+.1);bx(w-1.2,.06,.04,MC(0x2e7d32),x,1.15,z0+.14)},
+  nghi:(g,x,w,z0)=>{const{bx}=mk(g);bx(2.2,.45,.8,MC(0x8a4b3b),x-.4,.28,z0+.7);bx(2.2,.5,.2,MC(0x8a4b3b),x-.4,.65,z0+.35);bx(1,.4,.6,MC(0x6a4429),x-.4,.22,z0+1.6);bx(.5,1.2,.4,MC(0xe8e8e8),x+w/2-.6,.6,z0+.5);bx(.9,.9,.5,MC(0x5a3f25),x+w/2-.7,.45,z0+2.2)},
+  gt:(g,x,w,z0)=>{const{bx}=mk(g);bx(1.3,.08,.7,MC(0x7a5233),x,.78,z0+1.4);bx(.5,.45,.5,MC(0x555),x,.28,z0+2.1);bx(.1,1.5,.1,MC(0x333),x+w/2-.5,.75,z0+.5);const t=sign('NỘI QUY',.7,.5,'#fff','#b71c1c',26);t.position.set(x,1.8,z0+.1);g.add(t)},
+  yte:(g,x,w,z0)=>{const{bx}=mk(g);bx(.9,.5,1.9,MC(0xf4f4f4),x-w/2+.7,.5,z0+1.3);bx(.8,.1,.6,MC(0xffffff),x-w/2+.7,.78,z0+.6);bx(.7,1.8,.4,MC(0xdfe8ec),x+w/2-.6,.9,z0+.5);bx(.3,.08,.02,MC(0xd32f2f),x+w/2-.6,1.5,z0+.72);bx(.08,.3,.02,MC(0xd32f2f),x+w/2-.6,1.5,z0+.72);bx(1,.08,.6,MC(0x7a5233),x+.2,.78,z0+2)},
+  doan:(g,x,w,z0)=>{const{bx,cy}=mk(g);bx(1.6,.08,.8,MC(0x7a5233),x,.78,z0+1.2);const f=sign('',.9,.6,'#c8102e','#ffdf00');f.position.set(x,1.9,z0+.1);g.add(f);cy(.3,.3,.5,MC(0xb4572f),x+w/2-.6,.25,z0+1.2);bx(.1,.9,.1,MC(0x333),x-w/2+.5,.45,z0+.6)},
+  kho:(g,x,w,z0)=>{const{bx}=mk(g);for(let i=0;i<6;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.18,10,8),MC([0xe05a2b,0xf4f4f4,0xe8c13a][i%3]));b.position.set(x-.6+(i%3)*.4,.2+(i>2?.3:0),z0+.7);g.add(b)}bx(1.4,.15,.8,MC(0x3a6ea5),x+.2,.1,z0+1.8);bx(.9,.04,.04,MC(0x888),x,1.8,z0+.5)},
+  ct:(g,x,w,z0)=>{const{bx}=mk(g);bx(w-1,.9,.7,MC(0xd9b58c),x,.45,z0+1);bx(w-1,.06,.8,MC(0x6a4429),x,.93,z0+1);for(let i=0;i<5;i++){bx(.3,.35,.2,MC([0xe53935,0xfdd835,0x43a047,0x1e88e5,0xff8f00][i]),x-w/2+.8+i*.55,1.12,z0+1)}bx(w-1,1.6,.3,MC(0xcbb48a),x,.8,z0+.2);[-1,1].forEach(s=>{bx(1.1,.06,.7,MC(0x8a5a33),x+s*(w/4),.75,z0+2.4);bx(.4,.4,.4,MC(0xc4402b),x+s*(w/4),.22,z0+2.9)})},
+  tv:(g,x,w,z0)=>{const{bx}=mk(g);for(let i=0;i<5;i++){const p=sign('',.6,.8,i%2?'#d8c9a0':'#c9b27c','#5a3f25');p.position.set(x-w/2+1+i*((w-2)/4),1.7,z0+.1);g.add(p)}bx(w-1.4,.9,.5,MC(0x7a5233),x,.45,z0+1.5);bx(w-1.4,.05,.5,glass,x,.95,z0+1.5);const bt=sign('',.45,.55,'#222','#ffe27a');bt.position.set(x,2.4,z0+.1);g.add(bt)},
+  tvien:(g,x,w,z0)=>{const{bx}=mk(g);for(let i=0;i<4;i++){bx(.5,2,2.2,MC(0x7a5233),x-w/2+1+i*1.6,1,z0+1.4);for(let r=0;r<4;r++)bx(.46,.28,1.9,MC([0xc0392b,0x2e86c1,0xd4ac0d,0x27ae60][(i+r)%4]),x-w/2+1+i*1.6,.4+r*.45,z0+1.4)}bx(1.6,.08,.8,MC(0x6a4429),x+w/2-1.5,.78,z0+3.8);bx(.4,.4,.4,MC(0x2e5b8a),x+w/2-1.5,.28,z0+4.4)}
+ };
+ // ---------- dãy phòng một tầng ----------
+ function room_row(name,cx,cz,rooms,D,tagText){
+  const g=new THREE.Group();g.position.set(cx,0,cz);scene.add(g);const{bx,cy}=mk(g);
+  const L=rooms.reduce((a,r)=>a+r.w,0);const x0=-L/2;
+  bx(L+1,.25,D+3,MC(0xcfc7b6),0,.12,1.2); // nền + hiên
+  bx(L,.1,D,MC(0xe7dcc0),0,.3,0);
+  const wall=MC(0xf0e4b8),dado=MC(0x7aa57a);
+  bx(L,3.4,.25,wall,0,1.95,-D/2); bx(.25,3.4,D,wall,-L/2,1.95,0); bx(.25,3.4,D,wall,L/2,1.95,0);
+  bx(L,.9,.3,dado,0,.75,-D/2+.02);
+  let ax=x0;
+  rooms.forEach((r,i)=>{const mid=ax+r.w/2;
+   if(i>0)bx(.18,3.4,D,wall,ax,1.95,0);
+   // mặt trước: tường thấp + kính + lanh tô, cửa giữa
+   bx(r.w,1,.2,wall,mid,.8,D/2);bx(r.w,.9,.2,wall,mid,3.2,D/2);
+   const gw=r.w-1.6;if(gw>.5){const gl=new THREE.Mesh(new THREE.BoxGeometry(gw/2-.1,1.5,.05),glass);[-1,1].forEach(s=>{const o=gl.clone();o.position.set(mid+s*(gw/4+.55),1.85,D/2+.02);g.add(o)});[-1,1].forEach(s=>{bx(.06,1.5,.08,MC(0x2e5b3a),mid+s*(gw/4+.55),1.85,D/2+.04)})}
+   bx(1.1,2.5,.14,MC(0x4a7a52),mid,1.55,D/2+.02);bx(.7,.8,.05,glass,mid,2,D/2+.1);
+   const sg=sign(r.n,Math.min(r.w-.3,3.6),.55,'#0f4c3a','#ffe27a',r.n.length>16?30:36);sg.position.set(mid,3.2,D/2+.13);g.add(sg);
+   if(furn[r.k])furn[r.k](g,mid,r.w,-D/2);
+   acts.push({x:cx+mid,z:cz+D/2+1.7,r:1.8,l:'👀 '+r.n,f:()=>toast(r.t)});
+   ax+=r.w});
+  // hiên + cột + mái
+  for(let x=x0;x<=L/2+.01;x+=Math.max(3,L/Math.round(L/3.3)))cy(.14,.14,3.2,MC(0xe8d9a8),x,1.9,D/2+2.3);
+  bx(L+.6,.22,.5,MC(0xe8d9a8),0,3.4,D/2+2.3);
+  const sl=(sgn)=>{const len=(D/2+(sgn>0?2.9:.8))/Math.cos(.42);const o=bx(L+1,.14,len,MC(0xb5472f,{roughness:.8}),0,4.35,sgn*(D/2+(sgn>0?2.9:.8))/2-(sgn>0?.0:.2));o.rotation.x=sgn>0?.42:-.42;return o};
+  sl(1);sl(-1);bx(L+1,.2,.3,MC(0x8a3524),0,5.0,.7);
+  addLight(g,0,3,D/2+.8,18);
+  solid.push([cx-L/2-.3,cx+L/2+.3,cz-D/2-.2,cz+D/2+.3]);
+  tagSprite(tagText||name,cx,6.2,cz,.55);
+  go(name,cx,cz+D/2+5,Math.PI);refreshGo();
+  return g};
+ room_row('Dãy phòng thầy cô (hiệu trưởng, văn thư…)',-49.3,-58,[
+  {n:'Phòng Hiệu trưởng',k:'ht',w:3.6,t:'Phòng Hiệu trưởng: bàn gỗ lớn, cờ Tổ quốc, tủ sách. Cửa luôn khép hờ — học sinh ngày xưa đi qua đều rón rén.'},
+  {n:'Phòng Phó hiệu trưởng',k:'pht',w:3.6,t:'Phòng Phó hiệu trưởng: nơi giải quyết chuyện nền nếp, đi muộn, xin phép nghỉ học.'},
+  {n:'Văn thư',k:'vt',w:3,t:'Phòng Văn thư: tủ hồ sơ, con dấu đỏ, nơi xin giấy xác nhận học sinh.'},
+  {n:'Kế toán',k:'kt',w:3,t:'Phòng Kế toán: nơi nộp học phí, bàn máy tính, két sắt nhỏ.'},
+  {n:'Phòng họp Hội đồng sư phạm',k:'hop',w:5.8,t:'Phòng họp chung của thầy cô: bàn dài, bảng trắng, nơi họp hội đồng đầu năm và cuối kỳ.'},
+  {n:'Phòng nghỉ giáo viên',k:'nghi',w:4,t:'Phòng nghỉ giáo viên: ghế sofa, ấm trà, bình nước nóng — thầy cô uống trà giữa hai tiết.'},
+  {n:'Giám thị',k:'gt',w:3.2,t:'Phòng Giám thị: sổ theo dõi nền nếp, nội quy dán tường.'}
+ ],6.2,'Dãy phòng thầy cô · hành chính (minh hoạ)');
+ room_row('Dãy phòng chức năng (y tế, Đoàn Đội, căng tin)',-27.9,-58,[
+  {n:'Phòng Y tế',k:'yte',w:3.6,t:'Phòng Y tế học đường: giường trắng, tủ thuốc chữ thập đỏ — nơi các bạn xin nằm nghỉ khi đau bụng.'},
+  {n:'Đoàn – Đội',k:'doan',w:3.6,t:'Phòng Đoàn – Đội: cờ Đoàn, trống Đội, khăn quàng đỏ.'},
+  {n:'Kho thể dục',k:'kho',w:3,t:'Kho dụng cụ thể dục: bóng đá, bóng chuyền, đệm nhảy.'},
+  {n:'Căng tin',k:'ct',w:5.2,t:'Căng tin trường: kẹo, bánh mì, nước ngọt, bàn ghế nhỏ.'}
+ ],6.2,'Y tế · Đoàn Đội · Kho · Căng tin (minh hoạ)');
+ room_row('Thư viện & phòng truyền thống (sau hàng quán cổng)',-38,9.8,[
+  {n:'Thư viện',k:'tvien',w:8.4,t:'Thư viện trường: giá sách dài, bàn đọc, mùi giấy cũ.'},
+  {n:'Phòng truyền thống',k:'tv',w:6.6,t:'Phòng truyền thống: ảnh các khoá học sinh, bằng khen, tủ kỷ vật của trường.'}
+ ],6.2,'Thư viện · Phòng truyền thống (minh hoạ)');
+ // ---------- nhà vệ sinh ----------
+ function wc(name,cx,cz){
+  const W=8,D=4.6;const g=new THREE.Group();g.position.set(cx,0,cz);scene.add(g);const{bx,cy}=mk(g);
+  bx(W+1,.2,D+2.2,MC(0xcfc7b6),0,.1,.9);
+  bx(W,3.2,D,MC(0xf3ecd0),0,1.8,0);bx(W+.1,1.4,D+.1,MC(0x8fc4d6),0,.9,0);bx(W+.2,.1,D+.2,MC(0xffffff),0,1.62,0);
+  // tường chắn lối vào ở giữa
+  bx(.2,2.4,2.2,MC(0xf3ecd0),0,1.4,D/2+1.0);
+  // 2 cửa
+  [-1,1].forEach((s,i)=>{const x=s*2.2;bx(1.3,2.3,.1,MC(i?0xe9779c:0x2f6fb0),x,1.35,D/2+.02);
+   const sg=sign(i?'NỮ':'NAM',1.3,.7,i?'#e9779c':'#2f6fb0','#fff',70);sg.position.set(x,2.9,D/2+.06);g.add(sg);
+   // người que
+   const ic=ctex(128,128,(c,w,h)=>{c.fillStyle=i?'#e9779c':'#2f6fb0';c.fillRect(0,0,w,h);c.fillStyle='#fff';c.beginPath();c.arc(64,26,12,0,7);c.fill();c.fillRect(i?48:52,40,i?32:24,40);if(i){c.beginPath();c.moveTo(48,80);c.lineTo(80,80);c.lineTo(88,100);c.lineTo(40,100);c.fill()}else{c.fillRect(52,80,8,34);c.fillRect(68,80,8,34)}});
+   const im=new THREE.Mesh(new THREE.PlaneGeometry(.5,.5),new THREE.MeshBasicMaterial({map:ic}));im.position.set(x,2.2,D/2+.08);g.add(im)});
+  // ô thông gió
+  for(let k=-3;k<=3;k+=2)[0].forEach(()=>bx(.5,.4,.05,MC(0x4a7a52),k*1.1,2.5,-D/2-.02));
+  const rf=roofHip(g,W,D,3.4,1.4,0xb5472f);
+  const bn=sign('NHÀ VỆ SINH',4.6,.7,'#0f6b8e','#ffe27a',64);bn.position.set(0,3.7,D/2+.55);g.add(bn);
+  bx(4.6,.08,.08,MC(0x555),0,3.4,D/2+.55);
+  // bồn rửa tay phía trước
+  bx(5,.12,.6,MC(0xc9ced3,{roughness:.3,metalness:.6}),0,.85,D/2+1.9);bx(5,.8,.5,MC(0x8fc4d6),0,.5,D/2+1.9);
+  for(let i=0;i<5;i++){cy(.03,.03,.2,MC(0xc9ced3),-2+i*1,1.0,D/2+1.8,null,8)}
+  // chậu cây
+  [-1,1].forEach(s=>{cy(.35,.28,.45,MC(0xb4572f),s*(W/2+.1),.22,D/2+1.2);const l=new THREE.Mesh(new THREE.SphereGeometry(.5,10,8),MC(0x2f8f3a));l.position.set(s*(W/2+.1),.85,D/2+1.2);g.add(l)});
+  addLight(g,0,3,D/2+1,12);
+  tagSprite(name,cx,5.6,cz,.55);
+  solid.push([cx-W/2-.2,cx+W/2+.2,cz-D/2-.1,cz+D/2+.2]);
+  acts.push({x:cx,z:cz+D/2+2.6,r:2.2,l:'🚻 Nhà vệ sinh',f:()=>toast('Nhà vệ sinh học sinh: sạch sẽ, có bồn rửa tay ngoài hiên. (minh hoạ)')});
+  go(name,cx,cz+D/2+6,Math.PI);refreshGo()}
+ wc('🚻 Nhà vệ sinh khu Đông (minh hoạ)',49,-27);
+ wc('🚻 Nhà vệ sinh khu Tây (minh hoạ)',-43,-27);
+ // ---------- sân vận động phía sau ----------
+ const S=new THREE.Group();scene.add(S);const{bx:sb,cy:sc}=mk(S);
+ const fl=(w,d,x,z,m,y)=>{const o=new THREE.Mesh(new THREE.PlaneGeometry(w,d),m);o.rotation.x=-Math.PI/2;o.position.set(x,y,z);o.receiveShadow=true;S.add(o);return o};
+ // sọc cắt cỏ
+ for(let i=0;i<14;i++)fl(8.6,28,-50+i*8.7+4.3,-93,MC(i%2?0x93b56b:0x86a85f),.036);
+ const line=MC(0xffffff);
+ fl(.2,28,11,-93,line,.05);
+ // vòng tròn giữa
+ const ring=new THREE.Mesh(new THREE.RingGeometry(5.3,5.5,48),line);ring.rotation.x=-Math.PI/2;ring.position.set(11,.052,-93);S.add(ring);
+ // viền + vòng cấm địa
+ [[11,-107,122,.2],[11,-79,122,.2]].forEach(([x,z,w,d])=>fl(w,d,x,z,line,.05));
+ fl(.2,28.2,-50,-93,line,.05);fl(.2,28.2,72,-93,line,.05);
+ [[-41,-93],[63,-93]].forEach(([x,z])=>{fl(18,.2,x,z-8,line,.05);fl(18,.2,x,z+8,line,.05);fl(.2,16.2,x+(x<0?9:-9),z,line,.05)});
+ // đường chạy 4 làn
+ const tart=ctex(64,64,(c)=>{c.fillStyle='#b5482f';c.fillRect(0,0,64,64);c.fillStyle='rgba(0,0,0,.05)';for(let i=0;i<60;i++)c.fillRect(Math.random()*64,Math.random()*64,2,2)});
+ fl(116,5.2,12,-101.6,new THREE.MeshStandardMaterial({map:tart,roughness:.95}),.04);
+ for(let i=0;i<=4;i++)fl(116,.1,12,-104.2+i*1.3,line,.05);
+ fl(.25,5.2,-46,-101.6,line,.05);fl(.25,5.2,70,-101.6,line,.05);
+ for(let x=-36;x<=60;x+=20){const t=sign((x+46)+'m',.9,.4,'#fff','#b5482f',26);t.rotation.x=-Math.PI/2;t.position.set(x,.06,-98.9);S.add(t)}
+ // hố nhảy xa
+ fl(8,2.6,76,-101.6,MC(0xe2cf9a),.045);sb(8.2,.12,2.8,MC(0xb9b2a4),76,.06,-101.6);sb(.5,.05,2.6,MC(0xffffff),71,.07,-101.6);
+ // khán đài phía bắc
+ const stand=new THREE.Group();S.add(stand);
+ for(let k=0;k<5;k++){sb(46,.5,.9,MC(k%2?0xd8d2c4:0xcfc8b8),12,.25+k*.5,-107.8-k*.9+.0,stand);sb(46,.1,.5,MC([0xc0392b,0x2e86c1,0xf1c40f,0x27ae60,0xe67e22][k]),12,.55+k*.5,-107.6-k*.9,stand)}
+ [-10,34].forEach(x=>[0,1].forEach(()=>0));
+ for(let i=0;i<=8;i++)sc(.12,.12,5.4,MC(0xdddddd),-10+i*5.75,2.7,-112.2,stand);
+ sb(47,.2,5.8,MC(0x2e5b8a),12,5.4,-110,stand).rotation.x=-.12;
+ const bn=sign('HỘI KHOẺ PHÙ ĐỔNG · THPT NGUYỄN BỈNH KHIÊM',16,.9,'#c8102e','#ffe27a',44);bn.position.set(12,3.6,-104.6);S.add(bn);
+ // khán giả ngồi
+ const cn=24,hm=new THREE.InstancedMesh(new THREE.SphereGeometry(.14,8,6),MC(0xd9a577),cn*4),bm=new THREE.InstancedMesh(new THREE.BoxGeometry(.34,.5,.22),MC(0xffffff),cn*4);
+ const dm=new THREE.Object3D();let n=0;
+ for(let k=0;k<4;k++)for(let i=0;i<cn;i++){const x=-9+i*1.9+(k%2)*.9,y=.7+k*.5,z=-107.8-k*.9;dm.position.set(x,y+.55,z);dm.updateMatrix();bm.setMatrixAt(n,dm.matrix);dm.position.set(x,y+1,z);dm.updateMatrix();hm.setMatrixAt(n,dm.matrix);n++}
+ S.add(hm,bm);
+ // cột cờ + cờ (cờ Tổ quốc)
+ const flagT=ctex(128,86,(c,w,h)=>{c.fillStyle='#da251d';c.fillRect(0,0,w,h);c.fillStyle='#ffff00';c.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?9:22;c.lineTo(w/2+Math.cos(a)*r,h/2+Math.sin(a)*r)}c.fill()});
+ const flags=[];
+ [-47,-12,12,36,70].forEach(x=>{sc(.06,.08,7,MC(0xdddddd),x,3.5,-83,S);const f=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4,8,1),new THREE.MeshBasicMaterial({map:flagT,side:THREE.DoubleSide}));f.position.set(x+1.15,6.3,-83);S.add(f);flags.push(f)});
+ anim.push((dt,t)=>flags.forEach((f,i)=>{const p=f.geometry.attributes.position;for(let j=0;j<p.count;j++){const u=p.getX(j)+1.1;p.setZ(j,Math.sin(u*2.2+t*3+i)*.12*u)}p.needsUpdate=true}));
+ // cột đèn sân
+ [[-48,-80],[72,-80],[-48,-107],[72,-107]].forEach(([x,z])=>{sc(.12,.18,12,MC(0x777777),x,6,z,S);sb(2.2,.5,.8,new THREE.MeshStandardMaterial({color:0xfff3d0,emissive:0xffe9b0,emissiveIntensity:.8}),x,12.2,z)});
+ const fL=[[-30,-93],[52,-93]].map(([x,z])=>{const l=new THREE.PointLight(0xfff1d0,0,60,1.4);l.position.set(x,11,z);S.add(l);return l});
+ anim.push(()=>{fL.forEach(l=>l.intensity=night()?2.2:0)});
+ // bảng điểm
+ sb(6,2.4,.3,MC(0x1d1d1d),44,3,-110);sb(.2,3,.2,MC(0x555),41.5,1.5,-110);sb(.2,3,.2,MC(0x555),46.5,1.5,-110);
+ const sbo=sign('NBK  2 – 1  KHÁCH',5.6,2,'#101820','#6bff6b',46);sbo.position.set(44,3,-109.8);S.add(sbo);
+ // cầu thủ chạy khởi động + vận động viên chạy đua
+ const rn=[];const skin=[0xf0c8a0,0xe6b88a,0xd9a577];
+ const person=(sh,pt,x,z)=>{const p=new THREE.Group();p.position.set(x,0,z);const{bx,cy}=mk(p);bx(.14,.7,.16,MC(pt),-.09,.35,0,p);bx(.14,.7,.16,MC(pt),.09,.35,0,p);bx(.38,.6,.22,MC(sh),0,1.05,0,p);const h=new THREE.Mesh(new THREE.SphereGeometry(.15,10,8),MC(skin[(x*7|0)%3&3]||0xe6b88a));h.position.y=1.55;p.add(h);const hr=new THREE.Mesh(new THREE.SphereGeometry(.16,10,8,0,Math.PI*2,0,Math.PI*.55),MC(0x1a1a1a));hr.position.y=1.57;p.add(hr);S.add(p);return p};
+ for(let i=0;i<4;i++){const p=person([0xe53935,0x1e88e5,0xfdd835,0x43a047][i],0x222222,-40,-103.9+i*1.3);rn.push([p,i])}
+ const jog=[];for(let i=0;i<8;i++){const p=person(i<4?0xe53935:0x1e88e5,0xffffff,-10+i*6,-88+(i%3)*5);jog.push([p,i])}
+ anim.push((dt,t)=>{rn.forEach(([p,i])=>{const u=((t*(2.6+i*.3)+i*3)%110);p.position.x=-44+u;p.rotation.y=Math.PI/2;p.position.y=Math.abs(Math.sin(t*9+i))*.12});jog.forEach(([p,i])=>{p.position.x+=Math.sin(t*.4+i)*dt*2.5;p.position.z+=Math.cos(t*.35+i*2)*dt*1.6;p.rotation.y=Math.atan2(Math.cos(t*.4+i),-Math.sin(t*.35+i*2));p.position.y=Math.abs(Math.sin(t*6+i))*.08})});
+ // lều hội thao + bàn nước
+ [[-18,-80],[2,-80],[30,-80]].forEach(([x,z],i)=>{const c=[0xc8102e,0x1565c0,0xf9a825][i];sc(.05,.05,2.6,MC(0x888),x-1.4,1.3,z-1.1,S);sc(.05,.05,2.6,MC(0x888),x+1.4,1.3,z-1.1,S);sc(.05,.05,2.6,MC(0x888),x-1.4,1.3,z+1.1,S);sc(.05,.05,2.6,MC(0x888),x+1.4,1.3,z+1.1,S);const r=new THREE.Mesh(new THREE.ConeGeometry(1,1,4),MC(c));r.rotation.y=Math.PI/4;r.scale.set(2.2,.8,1.7);r.position.set(x,3,z);S.add(r);sb(2.2,.8,.7,MC(0xdddddd),x,.4,z-.2)});
+ tagSprite('🏟️ Sân vận động phía sau (minh hoạ)',12,9,-92,.7);
+ tagSprite('Khán đài',12,7.4,-110,.5);tagSprite('Đường chạy 100m',12,2.6,-101.6,.45);
+ acts.push({x:12,z:-100,r:6,l:'📣 Cổ vũ',f:()=>toast('Cả sân vận động hò reo! NBK cố lên! 📣')});
+ go('🏟️ Sân vận động: khán đài, đường chạy, cờ',12,-80,0);refreshGo();
 }
 function buildLua(){
  const FX=-6.5,FZ=-23.5,NC=12,LOW=isTouch,CRX=7.6,CRZ=6.4;
@@ -3855,6 +4021,7 @@ fontsReady.then(()=>{
  try{buildDot9()}catch(e){console.error(e)}
  try{buildLua()}catch(e){console.error(e)}
  try{buildNuoc()}catch(e){console.error(e)}
+ try{buildExtra()}catch(e){console.error(e)}
  try{window.__lowSolids()}catch(e){console.error(e)}
  refreshNotes();resize();requestAnimationFrame(loop);
  const go=$('#go');go.disabled=false;go.textContent='Bước vào trường';
