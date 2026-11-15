@@ -1,0 +1,406 @@
+// Máy chủ "Về thăm trường xưa – THPT Nguyễn Bỉnh Khiêm"
+// Một Durable Object duy nhất ("nbk") giữ toàn bộ dữ liệu trong SQLite:
+// người dùng, lưu bút, tin nhắn, phòng lớp, ảnh (ảnh đại diện, ảnh lớp, ảnh chụp chung), bình chọn đồng phục;
+// và giữ các kết nối trực tiếp (ai đang online).
+
+const DAY = 86400000;
+const CHAT_KEEP = 30 * DAY;
+const MAX_NOTE = 200, MAX_MSG = 300;
+const MAX_AVATAR = 80 * 1024;      // ảnh đại diện sau khi trang tự thu nhỏ
+const MAX_PHOTO = 700 * 1024;      // ảnh lớp / ảnh chụp chung sau khi thu nhỏ
+const KHOA_RE = /^(19|20)\d\d – (19|20)\d\d$/;
+
+const json = (d, s = 200) => new Response(JSON.stringify(d), {
+  status: s, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
+});
+const clean = (s, n) => String(s ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+const normLop = s => clean(s, 10).toUpperCase().replace(/\s+/g, '');
+const rnd = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); };
+const pin6 = () => String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
+async function sha(s) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+const okRoom = r => r === 'truong' || KHOA_RE.test(r);
+const LOOK_KEYS = { hair: 12, shoes: 12, acc: 40, uni: 12, skin: 8 };
+function cleanLook(l) {
+  const o = {}; if (!l || typeof l !== 'object') return o;
+  for (const k in LOOK_KEYS) if (l[k] != null) o[k] = clean(l[k], LOOK_KEYS[k]).replace(/[^a-z0-9,_-]/gi, '');
+  return o;
+}
+function dataUrlBytes(d, max) {
+  const m = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/.exec(String(d || ''));
+  if (!m) return null;
+  const bin = atob(m[2]); if (bin.length > max) return 'big';
+  const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return { type: 'image/' + m[1], bytes: u };
+}
+
+export default {
+  async fetch(req, env) {
+    const url = new URL(req.url);
+    if (url.pathname.startsWith('/api/')) {
+      const stub = env.SCHOOL.get(env.SCHOOL.idFromName('nbk'));
+      return stub.fetch(req);
+    }
+    if (url.pathname === '/quan-ly') return env.ASSETS.fetch(new Request(new URL('/quan-ly.html', url), req));
+    return env.ASSETS.fetch(req);
+  }
+};
+
+import { DurableObject } from 'cloudflare:workers';
+
+export class School extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.sql = ctx.storage.sql;
+    this.sql.exec(`
+      CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY, key TEXT UNIQUE, pin TEXT, name TEXT, base TEXT, lop TEXT, khoa TEXT,
+        role TEXT, sex TEXT, season TEXT, look TEXT DEFAULT '{}', av INTEGER DEFAULT 0, banned INTEGER DEFAULT 0, ip TEXT, ts INTEGER);
+      CREATE INDEX IF NOT EXISTS users_name ON users(name);
+      CREATE TABLE IF NOT EXISTS notes(id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, text TEXT, ts INTEGER);
+      CREATE TABLE IF NOT EXISTS msgs(id INTEGER PRIMARY KEY AUTOINCREMENT, room TEXT, uid TEXT, text TEXT, ts INTEGER);
+      CREATE INDEX IF NOT EXISTS msgs_room ON msgs(room, ts);
+      CREATE TABLE IF NOT EXISTS rooms(lop TEXT PRIMARY KEY, idx INTEGER, khoa TEXT, ts INTEGER);
+      CREATE TABLE IF NOT EXISTS rclaims(room TEXT, khoa TEXT, lop TEXT, uid TEXT, ts INTEGER, PRIMARY KEY(room, khoa));
+      CREATE UNIQUE INDEX IF NOT EXISTS rclaims_lop ON rclaims(lop, khoa);
+      CREATE TABLE IF NOT EXISTS avatars(uid TEXT PRIMARY KEY, type TEXT, data BLOB);
+      CREATE TABLE IF NOT EXISTS photos(id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, kind TEXT, lop TEXT, khoa TEXT, cap TEXT,
+        type TEXT, data BLOB, ok INTEGER DEFAULT 0, ts INTEGER);
+      CREATE TABLE IF NOT EXISTS uvote(uid TEXT PRIMARY KEY, khoa TEXT, he TEXT, dong TEXT);
+      CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
+      CREATE TABLE IF NOT EXISTS hits(k TEXT, ts INTEGER);
+      CREATE INDEX IF NOT EXISTS hits_k ON hits(k, ts);
+    `);
+  }
+  row(q, ...a) { const r = this.sql.exec(q, ...a).toArray(); return r[0] || null; }
+  all(q, ...a) { return this.sql.exec(q, ...a).toArray(); }
+  // giới hạn số lần làm một việc trong một khoảng thời gian (chống phá)
+  limit(k, n, ms) {
+    const now = Date.now();
+    if (Math.random() < 0.02) this.sql.exec('DELETE FROM hits WHERE ts<?', now - DAY);
+    const c = this.row('SELECT COUNT(*) c FROM hits WHERE k=? AND ts>?', k, now - ms).c;
+    if (c >= n) return false;
+    this.sql.exec('INSERT INTO hits(k,ts) VALUES(?,?)', k, now); return true;
+  }
+  pub(u) {
+    let look = {}; try { look = JSON.parse(u.look || '{}'); } catch (e) { }
+    return { id: u.id, name: u.name, lop: u.lop, khoa: u.khoa, role: u.role, sex: u.sex, season: u.season, look, av: u.av || 0 };
+  }
+  me(key) { if (!key) return null; const u = this.row('SELECT * FROM users WHERE key=?', String(key)); return u && !u.banned ? u : (u ? 'banned' : null); }
+  broadcast(o, except) {
+    const s = JSON.stringify(o);
+    for (const ws of this.ctx.getWebSockets()) { if (ws === except || ws.readyState !== 1) continue; try { ws.send(s); } catch (e) { } }
+  }
+  // từ 15/11/2026 không tự xếp phòng nữa: ai đến trước thì tự nhận phòng (xem /rooms/claim)
+  claimRoom(p) { }
+  roomClaims() {
+    return this.all('SELECT c.room,c.khoa,c.lop,c.uid,c.ts,u.name FROM rclaims c LEFT JOIN users u ON u.id=c.uid ORDER BY c.ts');
+  }
+  noteOut(r) { return { id: r.id, uid: r.uid, text: r.text, ts: r.ts, name: r.name, lop: r.lop, khoa: r.khoa, role: r.role }; }
+  msgOut(r) { return { id: r.id, room: r.room, uid: r.uid, text: r.text, ts: r.ts, name: r.name, lop: r.lop, khoa: r.khoa, role: r.role }; }
+  photoOut(r) { return { id: r.id, uid: r.uid, kind: r.kind, lop: r.lop, khoa: r.khoa, cap: r.cap, ts: r.ts, ok: r.ok, name: r.name }; }
+  uniformVotes() {
+    const out = {};
+    for (const v of this.all('SELECT v.khoa,v.he,v.dong FROM uvote v JOIN users u ON u.id=v.uid WHERE u.banned=0')) {
+      const o = out[v.khoa] = out[v.khoa] || { he: {}, dong: {} };
+      if (v.he) o.he[v.he] = (o.he[v.he] || 0) + 1;
+      if (v.dong) o.dong[v.dong] = (o.dong[v.dong] || 0) + 1;
+    }
+    return out;
+  }
+  peerInfo(ws) { const a = ws.deserializeAttachment(); return a && a.u ? Object.assign({}, a.u, { p: a.p || null }) : null; }
+  refreshPeer(u) {
+    // cập nhật thông tin người này trên mọi kết nối đang mở của họ và báo cho mọi người
+    const pu = this.pub(u);
+    for (const ws of this.ctx.getWebSockets()) { const a = ws.deserializeAttachment(); if (a && a.u && a.u.id === u.id) { a.u = pu; ws.serializeAttachment(a); } }
+    this.broadcast({ t: 'look', peer: pu });
+  }
+
+  async fetch(req) {
+    const url = new URL(req.url);
+    const path = url.pathname.slice(4);
+    const ip = req.headers.get('cf-connecting-ip') || 'local';
+    try {
+      if (path === '/live') return this.live(req, url);
+      if (req.method === 'GET') {
+        if (path === '/ping') return json({ ok: true });
+        if (path === '/notes') {
+          return json({ notes: this.all("SELECT n.*,u.name,u.lop,u.khoa,u.role FROM notes n JOIN users u ON u.id=n.uid WHERE u.banned=0 ORDER BY n.id DESC LIMIT 500").map(r => this.noteOut(r)) });
+        }
+        if (path === '/msgs') {
+          const room = String(url.searchParams.get('room') || 'truong'); if (!okRoom(room)) return json({ msgs: [] });
+          const rows = this.all("SELECT m.*,u.name,u.lop,u.khoa,u.role FROM msgs m JOIN users u ON u.id=m.uid WHERE m.room=? AND m.ts>? AND u.banned=0 ORDER BY m.id DESC LIMIT 100", room, Date.now() - CHAT_KEEP);
+          return json({ msgs: rows.reverse().map(r => this.msgOut(r)) });
+        }
+        if (path === '/rooms') {
+          const people = this.all("SELECT lop,khoa,COUNT(*) n FROM users WHERE banned=0 AND role='hs' AND lop<>'' GROUP BY lop,khoa");
+          return json({ claims: this.roomClaims(), people });
+        }
+        if (path === '/solop') {
+          const people = this.all("SELECT u.id,u.name,u.lop,u.khoa,u.role,u.av,(SELECT COUNT(*) FROM notes n WHERE n.uid=u.id) nc FROM users u WHERE u.banned=0 AND u.khoa<>'' ORDER BY u.name");
+          return json({ people });
+        }
+        if (path === '/uniform') return json({ votes: this.uniformVotes() });
+        if (path === '/avatar') {
+          const r = this.row('SELECT a.type,a.data FROM avatars a JOIN users u ON u.id=a.uid WHERE a.uid=? AND u.banned=0', String(url.searchParams.get('id') || ''));
+          if (!r) return new Response('', { status: 404 });
+          return new Response(r.data, { headers: { 'content-type': r.type, 'cache-control': 'public, max-age=86400' } });
+        }
+        if (path === '/photos') {
+          // ảnh đã duyệt của một lớp (hoặc cả trường nếu không ghi lớp)
+          const lop = normLop(url.searchParams.get('lop') || ''), khoa = String(url.searchParams.get('khoa') || '');
+          const rows = lop
+            ? this.all("SELECT p.id,p.uid,p.kind,p.lop,p.khoa,p.cap,p.ts,p.ok,u.name FROM photos p JOIN users u ON u.id=p.uid WHERE p.ok=1 AND p.lop=? AND (?='' OR p.khoa=?) ORDER BY p.id DESC LIMIT 60", lop, khoa, khoa)
+            : this.all("SELECT p.id,p.uid,p.kind,p.lop,p.khoa,p.cap,p.ts,p.ok,u.name FROM photos p JOIN users u ON u.id=p.uid WHERE p.ok=1 ORDER BY p.id DESC LIMIT 60");
+          return json({ photos: rows.map(r => this.photoOut(r)) });
+        }
+        if (path === '/photo') {
+          const id = Number(url.searchParams.get('id')), pass = url.searchParams.get('pass');
+          const r = this.row('SELECT type,data,ok FROM photos WHERE id=?', id);
+          if (!r) return new Response('', { status: 404 });
+          if (!r.ok && !(pass && await this.isAdmin(pass))) return new Response('', { status: 403 });
+          return new Response(r.data, { headers: { 'content-type': r.type, 'cache-control': r.ok ? 'public, max-age=86400' : 'no-store' } });
+        }
+        return json({ error: 'Không có trang này' }, 404);
+      }
+
+      // ---------- các yêu cầu gửi lên (POST) ----------
+      if (req.method !== 'POST') return json({ error: 'Sai cách gọi' }, 405);
+      const len = Number(req.headers.get('content-length') || 0);
+      if (len > 1200 * 1024) return json({ error: 'Ảnh quá lớn.' }, 413);
+      let b = {}; try { b = await req.json(); } catch (e) { return json({ error: 'Dữ liệu không đúng' }, 400); }
+
+      if (path === '/join') {
+        const p = { base: clean(b.name, 40), lop: normLop(b.lop), khoa: KHOA_RE.test(b.khoa) ? b.khoa : '', role: b.role === 'gv' ? 'gv' : 'hs',
+          sex: b.sex === 'nu' ? 'nu' : 'nam', season: ['he', 'dong', 'td', 'auto'].includes(b.season) ? b.season : 'he', look: JSON.stringify(cleanLook(b.look)) };
+        if (p.base.length < 2) return json({ error: 'Bạn nhập họ tên đầy đủ nhé.' }, 400);
+        if (p.role === 'gv') p.lop = '';
+        const old = b.key ? this.row('SELECT * FROM users WHERE key=?', String(b.key)) : null;
+        if (old && old.banned) return json({ error: 'Tên này đã bị chặn.' }, 403);
+        // cùng tên + lớp + khóa với người khác thì thêm (2), (3)
+        const uniq = (base, selfId) => {
+          let name = base, i = 1;
+          while (this.row('SELECT id FROM users WHERE name=? AND lop=? AND khoa=? AND id<>?', name, p.lop, p.khoa, selfId || '')) name = base + ' (' + (++i) + ')';
+          return name;
+        };
+        if (old) {
+          const name = (old.base === p.base && old.lop === p.lop && old.khoa === p.khoa) ? old.name : uniq(p.base, old.id);
+          this.sql.exec('UPDATE users SET name=?,base=?,lop=?,khoa=?,role=?,sex=?,season=?,look=? WHERE id=?', name, p.base, p.lop, p.khoa, p.role, p.sex, p.season, p.look, old.id);
+          const me = this.row('SELECT * FROM users WHERE id=?', old.id);
+          this.claimRoom(p); this.refreshPeer(me);
+          return json({ user: this.pub(me), key: me.key, pin: me.pin });
+        }
+        if (!this.limit('join:' + ip, 40, 3600000)) return json({ error: 'Mạng này tạo nhiều tên quá, bạn đợi một lúc nhé.' }, 429);
+        const id = 'u' + rnd(6), key = rnd(16), pin = pin6(), name = uniq(p.base);
+        this.sql.exec('INSERT INTO users(id,key,pin,name,base,lop,khoa,role,sex,season,look,ip,ts) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          id, key, pin, name, p.base, p.lop, p.khoa, p.role, p.sex, p.season, p.look, ip, Date.now());
+        this.claimRoom(p);
+        return json({ user: this.pub(this.row('SELECT * FROM users WHERE id=?', id)), key, pin, isNew: true });
+      }
+      if (path === '/recover') {
+        if (!this.limit('rec:' + ip, 10, 3600000)) return json({ error: 'Thử nhiều lần quá, bạn đợi một lúc nhé.' }, 429);
+        const u = this.row('SELECT * FROM users WHERE (name=? OR base=?) AND pin=? AND banned=0', clean(b.name, 44), clean(b.name, 44), String(b.pin || ''));
+        if (!u) return json({ error: 'Không thấy tên và mã này. Bạn kiểm tra lại nhé.' }, 404);
+        return json({ key: u.key, user: this.pub(u) });
+      }
+      if (path === '/admin') return this.admin(b);
+
+      // các việc dưới đây cần đã vào trường
+      const me = this.me(b.key);
+      if (me === 'banned') return json({ error: 'Tên này đã bị chặn.' }, 403);
+      if (!me) return json({ error: 'Bạn bấm "Vào trường" và nhập tên trước nhé.' }, 401);
+
+      if (path === '/notes') {
+        const text = clean(b.text, MAX_NOTE); if (!text) return json({ error: 'Bạn chưa viết gì.' }, 400);
+        if (!this.limit('note:' + me.id, 6, 3600000)) return json({ error: 'Mỗi giờ treo tối đa 6 lời nhắn thôi nhé.' }, 429);
+        const r = this.row('INSERT INTO notes(uid,text,ts) VALUES(?,?,?) RETURNING id,ts', me.id, text, Date.now());
+        const note = this.noteOut(Object.assign({}, me, { id: r.id, uid: me.id, text, ts: r.ts }));
+        this.broadcast({ t: 'note', note });
+        return json({ note });
+      }
+      if (path === '/notes/del') {
+        const id = Number(b.id); const n = this.row('SELECT uid FROM notes WHERE id=?', id);
+        if (!n || n.uid !== me.id) return json({ error: 'Không gỡ được lời nhắn này.' }, 403);
+        this.sql.exec('DELETE FROM notes WHERE id=?', id); this.broadcast({ t: 'delnote', id });
+        return json({ ok: true });
+      }
+      if (path === '/avatar') {
+        if (b.data === null) { this.sql.exec('DELETE FROM avatars WHERE uid=?', me.id); this.sql.exec('UPDATE users SET av=0 WHERE id=?', me.id); }
+        else {
+          const img = dataUrlBytes(b.data, MAX_AVATAR);
+          if (!img) return json({ error: 'Ảnh không đúng định dạng.' }, 400);
+          if (img === 'big') return json({ error: 'Ảnh quá lớn.' }, 413);
+          if (!this.limit('av:' + me.id, 10, DAY)) return json({ error: 'Hôm nay bạn đổi ảnh nhiều quá, mai đổi tiếp nhé.' }, 429);
+          this.sql.exec('INSERT OR REPLACE INTO avatars(uid,type,data) VALUES(?,?,?)', me.id, img.type, img.bytes.buffer);
+          this.sql.exec('UPDATE users SET av=? WHERE id=?', Date.now(), me.id);
+        }
+        const u = this.row('SELECT * FROM users WHERE id=?', me.id); this.refreshPeer(u);
+        return json({ user: this.pub(u) });
+      }
+      if (path === '/photos') {
+        const kind = b.kind === 'chung' ? 'chung' : 'lop';
+        const img = dataUrlBytes(b.data, MAX_PHOTO);
+        if (!img) return json({ error: 'Ảnh không đúng định dạng.' }, 400);
+        if (img === 'big') return json({ error: 'Ảnh quá lớn.' }, 413);
+        if (!this.limit('ph:' + me.id, 8, DAY)) return json({ error: 'Mỗi ngày gửi tối đa 8 ảnh thôi nhé.' }, 429);
+        const lop = normLop(b.lop || me.lop), khoa = KHOA_RE.test(b.khoa) ? b.khoa : me.khoa;
+        const r = this.row('INSERT INTO photos(uid,kind,lop,khoa,cap,type,data,ok,ts) VALUES(?,?,?,?,?,?,?,0,?) RETURNING id', me.id, kind, lop, khoa, clean(b.cap, 120), img.type, img.bytes.buffer, Date.now());
+        return json({ ok: true, id: r.id });
+      }
+      if (path === '/photos/mine') {
+        return json({ photos: this.all("SELECT p.id,p.uid,p.kind,p.lop,p.khoa,p.cap,p.ts,p.ok,'' name FROM photos p WHERE p.uid=? ORDER BY id DESC LIMIT 30", me.id).map(r => this.photoOut(r)) });
+      }
+      if (path === '/photos/del') {
+        const p = this.row('SELECT uid FROM photos WHERE id=?', Number(b.id));
+        if (!p || p.uid !== me.id) return json({ error: 'Không gỡ được ảnh này.' }, 403);
+        this.sql.exec('DELETE FROM photos WHERE id=?', Number(b.id)); this.broadcast({ t: 'photos' });
+        return json({ ok: true });
+      }
+      // nhận phòng: mỗi phòng, mỗi niên khóa một lớp; mỗi lớp của một khóa chỉ một phòng; người nhận sửa/bỏ trong 24 giờ
+      if (path === '/rooms/claim' || path === '/rooms/edit' || path === '/rooms/unclaim') {
+        const room = String(b.room || ''); if (!/^[A-Z][1-3]-\d{1,2}$/.test(room)) return json({ error: 'Phòng không đúng.' }, 400);
+        const khoa = String(b.khoa || ''); if (!KHOA_RE.test(khoa)) return json({ error: 'Bạn chọn niên khóa nhé.' }, 400);
+        const cur = this.row('SELECT * FROM rclaims WHERE room=? AND khoa=?', room, khoa);
+        if (path === '/rooms/unclaim') {
+          if (!cur || cur.uid !== me.id || Date.now() - cur.ts > DAY) return json({ error: 'Chỉ người nhận phòng mới bỏ được, trong 24 giờ. Quá hạn thì nhờ người lập trang.' }, 403);
+          this.sql.exec('DELETE FROM rclaims WHERE room=? AND khoa=?', room, khoa); this.broadcast({ t: 'rooms' }); return json({ ok: true });
+        }
+        const lop = normLop(b.lop); if (!/^\d{1,2}[A-ZĐ0-9]{1,6}$/.test(lop)) return json({ error: 'Bạn ghi tên lớp kiểu 12A1, 10C3 nhé.' }, 400);
+        const other = this.row('SELECT room FROM rclaims WHERE lop=? AND khoa=? AND room<>?', lop, khoa, room);
+        if (path === '/rooms/edit') {
+          if (!cur || cur.uid !== me.id || Date.now() - cur.ts > DAY) return json({ error: 'Chỉ người nhận phòng mới sửa được, trong 24 giờ. Quá hạn thì nhờ người lập trang.' }, 403);
+          if (other) return json({ error: `Lớp ${lop} khóa ${khoa} đã nhận phòng khác rồi (mã ${other.room}).` }, 409);
+          this.sql.exec('UPDATE rclaims SET lop=? WHERE room=? AND khoa=?', lop, room, khoa); this.broadcast({ t: 'rooms' }); return json({ ok: true });
+        }
+        if (cur) return json({ error: `Phòng này khóa ${khoa} đã có lớp ${cur.lop} nhận trước rồi.` }, 409);
+        if (other) return json({ error: `Lớp ${lop} khóa ${khoa} đã nhận phòng khác rồi. Bạn bấm "Tìm lớp" để tới đó nhé.` }, 409);
+        if (!this.limit('rc:' + me.id, 10, DAY)) return json({ error: 'Hôm nay bạn nhận phòng nhiều quá, mai thử lại nhé.' }, 429);
+        this.sql.exec('INSERT INTO rclaims(room,khoa,lop,uid,ts) VALUES(?,?,?,?,?)', room, khoa, lop, me.id, Date.now());
+        this.broadcast({ t: 'rooms' }); return json({ ok: true });
+      }
+      if (path === '/uniform') {
+        if (!me.khoa) return json({ error: 'Bạn chưa chọn niên khóa.' }, 400);
+        const he = clean(b.he, 12).replace(/[^a-z0-9_-]/gi, ''), dong = clean(b.dong, 12).replace(/[^a-z0-9_-]/gi, '');
+        this.sql.exec('INSERT OR REPLACE INTO uvote(uid,khoa,he,dong) VALUES(?,?,?,?)', me.id, me.khoa, he, dong);
+        const votes = this.uniformVotes(); this.broadcast({ t: 'uniform', votes });
+        return json({ votes });
+      }
+      return json({ error: 'Không có trang này' }, 404);
+    } catch (e) {
+      return json({ error: 'Máy chủ gặp lỗi, bạn thử lại nhé.' }, 500);
+    }
+  }
+
+  // ---------- trang quản lý ----------
+  async isAdmin(pass) {
+    const h = this.row("SELECT v FROM meta WHERE k='admin'"); if (!h || !pass) return false;
+    const [salt, hash] = h.v.split(':'); return (await sha(salt + String(pass))) === hash;
+  }
+  async admin(b) {
+    if (b.action === 'status') return json({ claimed: !!this.row("SELECT v FROM meta WHERE k='admin'") });
+    if (b.action === 'claim') {
+      if (this.row("SELECT v FROM meta WHERE k='admin'")) return json({ error: 'Mật khẩu quản lý đã được đặt rồi.' }, 403);
+      if (String(b.pass || '').length < 8) return json({ error: 'Mật khẩu cần ít nhất 8 ký tự.' }, 400);
+      const salt = rnd(8); this.sql.exec("INSERT INTO meta(k,v) VALUES('admin',?)", salt + ':' + await sha(salt + String(b.pass)));
+      return json({ ok: true });
+    }
+    if (!this.limit('admin', 120, 60000)) return json({ error: 'Thử nhiều quá, đợi chút nhé.' }, 429);
+    if (!(await this.isAdmin(b.pass))) return json({ error: 'Sai mật khẩu.' }, 401);
+    const q = clean(b.q, 40), like = '%' + q + '%';
+    switch (b.action) {
+      case 'login': return json({ ok: true });
+      case 'list': {
+        const notes = this.all("SELECT n.*,u.name,u.lop,u.khoa,u.role FROM notes n JOIN users u ON u.id=n.uid WHERE (?='' OR n.text LIKE ? OR u.name LIKE ?) ORDER BY n.id DESC LIMIT 200", q, like, like).map(r => this.noteOut(r));
+        const msgs = this.all("SELECT m.*,u.name,u.lop,u.khoa,u.role FROM msgs m JOIN users u ON u.id=m.uid WHERE (?='' OR m.text LIKE ? OR u.name LIKE ?) ORDER BY m.id DESC LIMIT 200", q, like, like).map(r => this.msgOut(r));
+        const users = this.all("SELECT id,name,lop,khoa,role,banned,av,ts,(SELECT COUNT(*) FROM notes n WHERE n.uid=users.id) nc FROM users WHERE (?='' OR name LIKE ? OR lop LIKE ?) ORDER BY ts DESC LIMIT 300", q, like, like);
+        const photos = this.all("SELECT p.id,p.uid,p.kind,p.lop,p.khoa,p.cap,p.ts,p.ok,u.name FROM photos p JOIN users u ON u.id=p.uid ORDER BY p.ok ASC, p.id DESC LIMIT 200").map(r => this.photoOut(r));
+        const pending = this.row('SELECT COUNT(*) c FROM photos WHERE ok=0').c;
+        return json({ notes, msgs, users, photos, pending, claims: this.roomClaims() });
+      }
+      case 'delNote': this.sql.exec('DELETE FROM notes WHERE id=?', Number(b.id)); this.broadcast({ t: 'delnote', id: Number(b.id) }); return json({ ok: true });
+      case 'delMsg': this.sql.exec('DELETE FROM msgs WHERE id=?', Number(b.id)); this.broadcast({ t: 'delmsg', id: Number(b.id) }); return json({ ok: true });
+      case 'photoOk': this.sql.exec('UPDATE photos SET ok=1 WHERE id=?', Number(b.id)); this.broadcast({ t: 'photos' }); return json({ ok: true });
+      case 'photoDel': this.sql.exec('DELETE FROM photos WHERE id=?', Number(b.id)); this.broadcast({ t: 'photos' }); return json({ ok: true });
+      case 'delAvatar': {
+        this.sql.exec('DELETE FROM avatars WHERE uid=?', String(b.id)); this.sql.exec('UPDATE users SET av=0 WHERE id=?', String(b.id));
+        const u = this.row('SELECT * FROM users WHERE id=?', String(b.id)); if (u) this.refreshPeer(u); return json({ ok: true });
+      }
+      case 'ban': {
+        const id = String(b.id);
+        this.sql.exec('UPDATE users SET banned=1 WHERE id=?', id);
+        this.sql.exec('DELETE FROM notes WHERE uid=?', id); this.sql.exec('DELETE FROM msgs WHERE uid=?', id);
+        this.sql.exec('DELETE FROM photos WHERE uid=?', id); this.sql.exec('DELETE FROM avatars WHERE uid=?', id); this.sql.exec('DELETE FROM uvote WHERE uid=?', id);
+        this.broadcast({ t: 'banned', id });
+        for (const ws of this.ctx.getWebSockets()) { const a = ws.deserializeAttachment(); if (a && a.u && a.u.id === id) try { ws.close(4003, 'banned'); } catch (e) { } }
+        return json({ ok: true });
+      }
+      case 'roomDel': this.sql.exec('DELETE FROM rclaims WHERE room=? AND khoa=?', String(b.room), String(b.khoa)); this.broadcast({ t: 'rooms' }); return json({ ok: true });
+      case 'roomEdit': {
+        const lop = normLop(b.lop); if (!lop) return json({ error: 'Thiếu tên lớp.' }, 400);
+        if (this.row('SELECT room FROM rclaims WHERE lop=? AND khoa=? AND room<>?', lop, String(b.khoa), String(b.room))) return json({ error: 'Lớp này của khóa này đã có phòng khác.' }, 409);
+        this.sql.exec('UPDATE rclaims SET lop=? WHERE room=? AND khoa=?', lop, String(b.room), String(b.khoa)); this.broadcast({ t: 'rooms' }); return json({ ok: true });
+      }
+      case 'unban': this.sql.exec('UPDATE users SET banned=0 WHERE id=?', String(b.id)); return json({ ok: true });
+      case 'resetPass': {
+        if (String(b.newPass || '').length < 8) return json({ error: 'Mật khẩu mới cần ít nhất 8 ký tự.' }, 400);
+        const salt = rnd(8); this.sql.exec("UPDATE meta SET v=? WHERE k='admin'", salt + ':' + await sha(salt + String(b.newPass)));
+        return json({ ok: true });
+      }
+    }
+    return json({ error: 'Không rõ việc cần làm' }, 400);
+  }
+
+  // ---------- kết nối trực tiếp: ai đang online, vị trí, chat, vẫy tay ----------
+  live(req, url) {
+    if (req.headers.get('Upgrade') !== 'websocket') return json({ error: 'Cần kết nối trực tiếp' }, 426);
+    const u = this.me(url.searchParams.get('key'));
+    const pair = new WebSocketPair(); const [client, server] = Object.values(pair);
+    this.ctx.acceptWebSocket(server);
+    if (!u || u === 'banned') { server.close(4003, 'no'); return new Response(null, { status: 101, webSocket: client }); }
+    const pu = this.pub(u);
+    server.serializeAttachment({ u: pu, p: null, c: [] });
+    const seen = new Map();
+    for (const ws of this.ctx.getWebSockets()) {
+      if (ws === server || ws.readyState !== 1) continue;
+      const pi = this.peerInfo(ws); if (pi && pi.id !== u.id) seen.set(pi.id, pi);
+    }
+    server.send(JSON.stringify({ t: 'hello', me: pu, peers: [...seen.values()], votes: this.uniformVotes() }));
+    this.broadcast({ t: 'join', peer: Object.assign({}, pu, { p: null }) }, server);
+    return new Response(null, { status: 101, webSocket: client });
+  }
+  webSocketMessage(ws, raw) {
+    let m; try { m = JSON.parse(raw); } catch (e) { return; }
+    const a = ws.deserializeAttachment(); if (!a || !a.u) return;
+    if (m.t === 'pos') {
+      const n = v => (typeof v === 'number' && isFinite(v)) ? Math.max(-5000, Math.min(5000, v)) : 0;
+      a.p = { x: n(m.x), z: n(m.z), y: n(m.yaw), m: m.m ? 1 : 0, r: m.r ? 1 : 0, h: m.h ? 1 : 0, k: Number.isInteger(m.k) && m.k >= -1 && m.k < 500 ? m.k : -1, f: Math.max(0, Math.min(30, n(m.f))), u: m.u ? 1 : 0, a: m.a ? 1 : 0 };
+      ws.serializeAttachment(a);
+      this.broadcast({ t: 'pos', id: a.u.id, p: a.p }, ws);
+      return;
+    }
+    if (m.t === 'wave' || m.t === 'pose') {
+      const now = Date.now(); if (a.w && now - a.w < 1500) return; a.w = now; ws.serializeAttachment(a);
+      this.broadcast({ t: m.t, id: a.u.id }, ws);
+      return;
+    }
+    if (m.t === 'chat') {
+      const room = String(m.room || 'truong'); if (!okRoom(room)) return;
+      const text = clean(m.text, MAX_MSG); if (!text) return;
+      const now = Date.now(); a.c = (a.c || []).filter(t => t > now - 60000);
+      if (a.c.length >= 15) { ws.send(JSON.stringify({ t: 'err', text: 'Bạn nhắn nhanh quá, đợi một chút nhé.' })); return; }
+      a.c.push(now); ws.serializeAttachment(a);
+      const me = this.row('SELECT * FROM users WHERE id=?', a.u.id); if (!me || me.banned) return;
+      const r = this.row('INSERT INTO msgs(room,uid,text,ts) VALUES(?,?,?,?) RETURNING id', room, me.id, text, now);
+      if (Math.random() < 0.05) this.sql.exec('DELETE FROM msgs WHERE ts<?', now - CHAT_KEEP);
+      this.broadcast({ t: 'chat', msg: this.msgOut(Object.assign({}, me, { id: r.id, room, uid: me.id, text, ts: now })) });
+      return;
+    }
+    if (m.t === 'ping') { try { ws.send('{"t":"pong"}'); } catch (e) { } }
+  }
+  webSocketClose(ws) { this.left(ws); }
+  webSocketError(ws) { this.left(ws); }
+  left(ws) {
+    const a = ws.deserializeAttachment(); if (!a || !a.u) return;
+    const still = this.ctx.getWebSockets().some(o => o !== ws && o.readyState === 1 && (o.deserializeAttachment() || {}).u?.id === a.u.id);
+    if (!still) this.broadcast({ t: 'leave', id: a.u.id }, ws);
+    try { ws.close(1000, 'bye'); } catch (e) { }
+  }
+}
