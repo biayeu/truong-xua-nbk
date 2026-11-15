@@ -3322,8 +3322,13 @@ function buildDot8(){
     NPC8(g,tx-.72,tz,tx,tz,pick8(SHIRTS),pick8(PANTS),true);if(i!==1)NPC8(g,tx+.72,tz,tx,tz,pick8(SHIRTS),pick8(PANTS),true)});
    inf.seats=seatsL.map(q=>{const a=W8(g,q.lx,q.lz),b=W8(g,q.tlx,q.tlz);return{x:a.x,z:a.z,tx:b.x,tz:b.z,yaw:Math.atan2(b.x-a.x,b.z-a.z)}});
    shopAct(inf,0,-4.5,4.2,label+' · gọi món · chat quán');MAP_SHOPS.push([X,Z,'a',0]);return inf};
-  /* đông vui trước cổng + trong sân bệnh viện (người đứng, MINH HOẠ) */
-  [[638,13,.3],[640.5,14,-.5],[645,15,2.4],[647,12.5,.2],[636.5,20,1.2],[648.5,17,-1.4],[641,6,3.1],[643.5,5.2,3.3],[626,5.5,1.6],[657,5.2,-1.6],[631,6.8,0],[652,7,3.0],[640,10.5,1.0],[644,10.8,-1.0]].forEach(([u,sv,r],i)=>{const[X,Z]=_W(u,sv);npc(X,Z,r,pick8(SHIRTS),pick8(PANTS),false,true)});
+  /* đông vui trước cổng + trong sân bệnh viện: người đi lại giữa 2 điểm (MINH HOẠ) */
+  {const PATHS=[[638,13,646,13],[640,10,640,21],[636.5,20,648.5,20],[643,15,643,19],[631,6.9,654,6.9],[654,7.6,626,7.6],[618,7.3,672,7.3],[672,5.6,612,5.6],[640,6.5,644,6.5],[633,15,650,22],[622,6.2,660,6.8],[660,5.9,624,5.9],[638.5,10.5,638.5,19],[648,12,636,17]];
+   const WK=PATHS.map(([u1,s1,u2,s2],i)=>{const[X,Z]=_W(u1,s1),g=npc(X,Z,0,pick8(SHIRTS),pick8(PANTS),false,true);const A=_W(u1,s1),B=_W(u2,s2);return{g,A,B,t:(i*.17)%1,dir:1,len:Math.hypot(A[0]-B[0],A[1]-B[1]),sp:.7+(i%4)*.18}});
+   anim.push(dt=>{dt=Math.min(dt,.05);for(const w of WK){const near=Math.hypot(w.g.position.x-pos.x,w.g.position.z-pos.z)<160;w.g.visible=near;if(!near)continue;
+     w.t+=w.dir*w.sp*dt/w.len;if(w.t>1){w.t=1;w.dir=-1}if(w.t<0){w.t=0;w.dir=1}
+     const x=w.A[0]+(w.B[0]-w.A[0])*w.t,z=w.A[1]+(w.B[1]-w.A[1])*w.t;w.g.rotation.y=Math.atan2((w.B[0]-w.A[0])*w.dir,(w.B[1]-w.A[1])*w.dir);
+     w.g.position.set(x,Math.abs(Math.sin(w.t*w.len*2.2))*.05,z)}})}
   mk('quan-vien1',619.25,'QUÁN NƯỚC CỔNG VIỆN','Quán nước Cổng Viện','trà đá · nước mía · sữa chua (minh hoạ)','#4dd0e1','#10222a',0xf1e2c4,['#00838f','#fff'],0x8d4a32,'Cho cốc nước mát nhé!','Quán nước ngay cạnh cổng bệnh viện, người nhà bệnh nhân hay ghé ngồi nghỉ. (món và giá là minh hoạ)',
    [['Trà đá','một cốc',3,'glass',0xd9b66a,null],['Nước mía','ép tươi',10,'glass',0xcfd98a,null],['Sữa chua','hũ nhỏ',8,'plate',0xfff3e0,0x90caf9],['Nước chanh','đá lạnh',10,'glass',0xf3e57a,null]],0xdfe8ee,0x00838f);
   mk('quan-vien2',665.75,'CHÁO – BÚN CỔNG VIỆN','Cháo – bún Cổng Viện','cháo · bún · phở sáng (minh hoạ)','#ffb74d','#2a1a10',0xf3e6c0,['#c62828','#fff'],0x8d4a32,'Cho bát cháo nóng nhé!','Quán cháo bún cạnh cổng bệnh viện, mở sớm cho người nhà đi viện. (món và giá là minh hoạ)',
