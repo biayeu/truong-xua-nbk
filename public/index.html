@@ -41,6 +41,12 @@ a{color:var(--y)}
 .seg button.on{background:var(--y);color:#1b2b23}
 #bar .row2{display:flex;flex-direction:column;gap:5px}
 #bar .row2 button{width:100%;text-align:left;justify-content:flex-start}
+.chip.hot{border-color:var(--y);color:var(--y);background:rgba(243,214,107,.12);font-weight:700}
+.chip.hot:not([hidden]){box-shadow:0 0 0 1px rgba(243,214,107,.35)}
+#guideL button{display:block;width:100%;text-align:left;margin:0 0 8px;padding:10px 12px;border:2px solid var(--line);border-radius:8px;background:rgba(255,255,255,.05);color:inherit;font:inherit;font-size:14.5px;line-height:1.35}
+#guideL button b{color:var(--y)}
+#guideL button small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+#guideL button[disabled]{opacity:.55}
 .chip.sm{min-height:35px;padding:0 12px;font-size:14px}
 .chip.dot{border-color:var(--green);color:var(--green);background:rgba(166,227,181,.1)}
 
@@ -159,21 +165,22 @@ select{min-height:44px}select option{background:#21372d;color:#f3f0e6}
   </div>
   <div>
     <div class="row2">
+    <button id="bHelp" class="chip sm hot">❓ Hướng dẫn · có gì ở đây?</button>
+    <button id="bNv" class="chip sm hot">Nhân vật</button>
+    <button id="bGo" class="chip sm hot">Đi tới…</button>
+    <button id="bPhoto" class="chip sm hot">📷 Chụp ảnh chung</button>
+    <button id="bGb" class="chip sm hot">Lưu bút</button>
+    <button id="bOn" class="chip sm hot" hidden>💬 Chat · online 0</button>
+    <button id="bSo" class="chip sm hot" hidden>Sổ lớp</button>
+    <button id="bMeet" class="chip sm hot" hidden>Hẹn gặp</button>
+    <button id="bFind" class="chip sm hot" hidden>Tìm lớp</button>
+    <button id="bWave" class="chip sm">👋 Vẫy tay</button>
     <button id="bClock" class="chip sm">--:--</button>
     <button id="bKv" class="chip sm">Kỷ vật 0/10</button>
     <button id="bLight" class="chip sm" hidden>Đèn pin: tắt</button>
     <button id="bFlag" class="chip sm">Thử chào cờ</button>
     <button id="bSky" class="chip sm">Nhìn từ trên cao</button>
     <button id="bSeason" class="chip sm">Phượng: theo tháng thật</button>
-    <button id="bGb" class="chip sm">Lưu bút</button>
-    <button id="bOn" class="chip sm" hidden>💬 Chat · online 0</button>
-    <button id="bSo" class="chip sm" hidden>Sổ lớp</button>
-    <button id="bMeet" class="chip sm" hidden>Hẹn gặp</button>
-    <button id="bFind" class="chip sm" hidden>Tìm lớp</button>
-    <button id="bGo" class="chip sm">Đi tới…</button>
-    <button id="bNv" class="chip sm">Nhân vật</button>
-    <button id="bWave" class="chip sm">👋 Vẫy tay</button>
-    <button id="bPhoto" class="chip sm">📷 Chụp ảnh chung</button>
     <button id="bSnd" class="chip sm" aria-pressed="true">Âm thanh: bật</button>
     </div>
   </div>
@@ -2694,6 +2701,34 @@ const takeLabel=()=>({xemay:'Lấy xe máy',xedapdien:'Lấy xe đạp điện',
 const takeToast=()=>({xemay:'Đã lấy xe máy, đi nhanh hơn rồi đó!',xedapdien:'Đã lấy xe đạp điện, êm và nhanh hơn xe đạp thường.',dibo:'Hồi đó bạn đi bộ đến trường, hôm nay mượn tạm xe đạp nhà xe nhé!',dua:'Hồi đó bố mẹ đưa đón, hôm nay mượn tạm xe đạp nhà xe nhé!'})[myVeh()]||'Đã lấy xe đạp, đi nhanh hơn rồi đó!';
 const mkModal=(id,inner)=>{const m=document.createElement('div');m.className='modal';m.id=id;m.hidden=true;m.innerHTML='<div class="card" role="dialog">'+inner+'</div>';document.body.appendChild(m);m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-close]'))m.hidden=true});return m};
 const gotoMeet=()=>{$('#goto').hidden=true;if(inRoom)leaveRoom();setMode('walk');pos.set(-7.85+(Math.random()-.5)*1.6,1.6,3.5+Math.random()*2);yaw=Math.PI;pitch=-.05;faceYaw=yaw+Math.PI;velX=velZ=0;toast('Đã tới điểm hẹn, ngay trước tượng Trạng Trình.')};
+
+
+/* ---------- ĐỢT 11: HƯỚNG DẪN "CÓ GÌ Ở ĐÂY?" (hiện 1 lần khi vào trường, mở lại bằng nút ❓) ---------- */
+{const GUIDE=[
+ ['bNv','🧑 Nhân vật','Đặt tên, biệt danh, niên khoá, chọn xe hồi đi học. (Biệt danh hiện trên đầu bạn)'],
+ ['bGo','🧭 Đi tới…','Nhảy ngay tới: Sổ vàng, nhà xe, quán bia hơi, cafe Mori, quán chè, quán net, ăn đêm Cầu Nam Am, chợ, cầu, Đền Trạng Trình…'],
+ ['bPhoto','📷 Chụp ảnh chung','Chụp ảnh cùng bạn bè trong trường rồi lưu về máy. (Ảnh do bạn chụp, không lấy ảnh có bản quyền)'],
+ ['bGb','📝 Lưu bút','Viết lời nhắn treo lên cây phượng, đọc lời của bạn bè.'],
+ ['bOn','💬 Chat · online','Xem ai đang online, nhắn chung hoặc nhắn theo quán.'],
+ ['bSo','📒 Sổ lớp','Danh sách bạn theo niên khoá và lớp. (Vào trường bằng tên thật mới dùng được)'],
+ ['bMeet','⏰ Hẹn gặp','Hẹn cả lớp cùng vào trường một giờ nhất định.'],
+ ['bFind','🔎 Tìm lớp','Tìm bạn cũ theo lớp và niên khoá.'],
+ ['bWave','👋 Vẫy tay','Chào mọi người đang ở gần.'],
+ [null,'📖 Sổ vàng cổng trường','Đi tới cạnh cổng trường, bấm "Mở sổ vàng, ký tên".'],
+ [null,'🍜 Quán xá','Đi vào quán, bấm gọi món, ngồi bàn, chat riêng trong quán. Quán ăn đêm Cầu Nam Am mở 18h–4h.'],
+ ['bKv','🎒 Kỷ vật 0/10','Tìm 10 món đồ cũ giấu trong trường.'],
+ ['bFlag','🇻🇳 Thử chào cờ · 🥁 trống trường','Bấm vào cột cờ, trống, bảng đen, cây phượng để thấy điều bất ngờ.'],
+ ['bSky','🛰 Nhìn từ trên cao','Bay lên xem toàn trường như ảnh vệ tinh.'],
+ ['bSeason','🌸 Phượng theo tháng','Đổi màu phượng và mùa như ngoài đời.'],
+ [null,'🚲 Đi xe','Bấm "Lấy xe" ở nhà xe để đạp ra đường QL37, cầu Nam Am. Ban ngày có thể gặp học sinh xích mích và bác bảo vệ đi can.'],
+ ['bSnd','🔊 Âm thanh','Bật tắt tiếng sân trường, phố, quán.']];
+ const gm=mkModal('guideM','<div class="head"><h2 class="hand">Có gì ở "Về thăm trường xưa"?</h2><button class="chip" data-close>Đóng</button></div><p class="small" style="margin:6px 0 10px">Bấm vào từng mục để mở luôn. Các nút vàng ở Bảng điều khiển là những thứ nên thử đầu tiên.</p><div id="guideL" style="max-height:62vh;overflow:auto"></div>');
+ const draw=()=>{$('#guideL').innerHTML=GUIDE.map((g,i)=>{const b=g[0]&&document.getElementById(g[0]);const off=g[0]&&(!b||b.hidden);return`<button type="button" data-i="${i}"${g[0]?'':' data-info="1"'}${off?' disabled':''}><b>${g[1]}</b><small>${g[2]}${off?' (chưa dùng được lúc này)':''}</small></button>`}).join('')};
+ $('#guideL').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;const g=GUIDE[+b.dataset.i];if(!g||!g[0])return;gm.hidden=true;setTimeout(()=>{const t=document.getElementById(g[0]);if(t)t.click()},60)});
+ const openG=()=>{draw();gm.hidden=false};$('#bHelp').onclick=openG;window.__openGuide=openG;
+ let shown=false;try{shown=!!localStorage.getItem('nbkGuide11')}catch(_){}
+ if(!shown){const iv=setInterval(()=>{if(mode!=='intro'&&!anyModal()){clearInterval(iv);try{localStorage.setItem('nbkGuide11','1')}catch(_){}setTimeout(()=>{if(!anyModal())openG()},1800)}},800)}
+}
 
 /* --- thống kê đi học bằng gì (số liệu do bạn bè tự chọn) --- */
 let vehM=null;
