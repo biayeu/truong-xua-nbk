@@ -1,6 +1,13 @@
 # TIẾN ĐỘ – VỀ THĂM TRƯỜNG XƯA (THPT Nguyễn Bỉnh Khiêm, Lý Học, Vĩnh Bảo, Hải Phòng)
 
-Cập nhật: 15/11/2026 khoảng 11h trưa (đợt 5: giao diện Bảng đen – phấn trắng xong; CHƯA lên Cloudflare)
+Cập nhật: 15/11/2026 khoảng 11h50 (đợt 5 xong; ĐÃ LÊN MẠNG bằng Cloudflare, mật khẩu quản lý đã đặt; chờ sếp thử 2 máy rồi gửi link nhóm lớp)
+
+## TRANG ĐANG CHẠY THẬT (từ 15/11/2026)
+- Địa chỉ: https://truong-xua-nbk.hduongmac.workers.dev (trang quản lý: thêm /quan-ly vào cuối; mật khẩu do sếp giữ, quên là không lấy lại được qua trang).
+- Kho mã: https://github.com/biayeu/truong-xua-nbk (Public, nhánh main). Cloudflare (tài khoản Hduongmac@gmail.com, Workers & Pages → truong-xua-nbk) TỰ chạy lại mỗi khi có thay đổi trên nhánh main (mất ~1 phút).
+- Kiểm tra sau khi lên mạng (15/11): trang chính, /quan-ly, thư viện 3D, logo, máy chủ đều trả lời đúng, không lỗi. CHƯA kiểm: thử viết lưu bút/chat giữa điện thoại và máy tính.
+- GitHub đã nối với Claude (15/11, ứng dụng Claude chỉ cài cho kho truong-xua-nbk): từ nay Claude tự đẩy mã lên kho, sếp KHÔNG phải kéo thả nữa. Quy trình mỗi đợt: Claude sửa mã → chạy thử → đẩy lên main → Cloudflare tự cập nhật → Claude mở trang thật kiểm tra lại.
+- Thư mục `anh-goc/` (ảnh gốc) CHƯA đưa lên kho vì trang không dùng tới; vẫn còn trong thư mục trên máy sếp.
 
 ## Quy ước chung
 - Toạ độ: tượng Trạng Trình ở gốc (0,0); +z = hướng bắc (ra đường); +x = hướng tây; đơn vị mét.
@@ -16,20 +23,20 @@ Cập nhật: 15/11/2026 khoảng 11h trưa (đợt 5: giao diện Bảng đen �
 - Bản đầy đủ (có máy chủ): zip mới nhất `truong-xua-nbk-dot5.zip` trong thư mục trên → sẽ đưa lên GitHub `biayeu/truong-xua-nbk` → Cloudflare tự cập nhật.
   - `public/index.html` trang 3D · `public/quan-ly.html` trang quản lý · `public/logo.png`, `favicon.png` logo thật · `public/lib/three.min.js` thư viện 3D
   - `src/worker.js` máy chủ · `wrangler.jsonc` cấu hình Cloudflare · `anh-goc/` ảnh sếp gửi (logo, áo khoác đông, đồ thể dục)
-- QUAN TRỌNG: Claude không giữ file giữa các chat. Chat 14/11 tối zip cũ bị mất nên máy chủ + trang quản lý được VIẾT LẠI theo đúng cách trang 3D gọi (đã chạy thử đủ). Cho tới khi kết nối GitHub, mỗi chat mới cần zip mới nhất; nếu điện thoại không tải được zip thì Claude lấy trang 3D từ bản xem thử (máy chủ phải viết lại → nên kết nối GitHub sớm).
+- QUAN TRỌNG: Claude không giữ file giữa các chat. Từ 15/11 mã mới nhất nằm ở kho GitHub `biayeu/truong-xua-nbk` (đã nối với Claude): chat mới chỉ cần tải kho về là có đủ, không cần zip. (Zip và thư mục trên máy sếp chỉ còn là bản sao lưu.)
 
 ## Đợt 1 (đã xong)
 Đi dạo / tham quan theo điểm, chọn nhân vật, ngày–đêm theo giờ thật, bản đồ nhỏ, đi xe đạp, thử chào cờ, đánh trống, 10 kỷ vật, cây phượng lưu bút, ảnh minh hoạ, hàng quán cổng trường.
 
-## Đợt 2 (đã làm xong phần mã, đã chạy thử – CHỜ ĐƯA LÊN MẠNG)
+## Đợt 2 (đã làm xong phần mã, đã chạy thử, ĐÃ LÊN MẠNG 15/11/2026)
 Đã chốt: lên mạng qua GitHub biayeu → Cloudflare (miễn phí). Vào trang: Họ tên + Lớp + Niên khóa; máy tự tạo mã bí mật; đổi máy thì nhập họ tên + mã 6 số; tên trùng tự thêm (2), (3). Lưu bút hiện ngay, sếp xoá/chặn ở /quan-ly. Chat: phòng Toàn trường + phòng mỗi niên khóa, giữ 30 ngày.
 Đã làm: lưu bút chung (lọc cả trường/khóa/lớp), sổ lớp, thấy nhau online (nhân vật đi trong sân, bong bóng chat), trò chuyện, trang quản lý, chống phá (6 lời nhắn/giờ, 15 tin chat/phút, 40 tên mới/giờ mỗi mạng wifi, lời nhắn 200 chữ, tin chat 300 chữ).
 
-Còn phải làm để lên mạng (kiểm tra 14/11 tối: GitHub CHƯA kết nối với Claude):
-1. Sếp: tạo tài khoản Cloudflare; tạo kho trống `truong-xua-nbk` (Public) trên GitHub biayeu; kết nối GitHub trong claude.ai → Settings → Connectors.
-2. Claude: đẩy mã lên GitHub; mở trình duyệt trong app Claude trên Mac, nối Cloudflare với kho GitHub (Workers & Pages → Import repository), chạy lần đầu.
-3. Sếp: vào `<địa chỉ trang>/quan-ly` đặt mật khẩu quản lý NGAY sau khi lên mạng (ai vào trước sẽ đặt được).
-4. Thử 2 máy (điện thoại + máy tính) rồi gửi link cho nhóm lớp.
+Các bước lên mạng (15/11/2026):
+1. XONG – Sếp tạo tài khoản Cloudflare, tạo kho `truong-xua-nbk` (Public) trên GitHub biayeu, nối GitHub với Claude.
+2. XONG – Mã đợt 5 đã lên kho (kéo thả từng lượt vì trình duyệt trong app không nhận cả thư mục); Cloudflare nối với kho, chạy lần đầu thành công.
+3. XONG – Sếp đặt mật khẩu quản lý ở /quan-ly.
+4. CÒN – Thử 2 máy (điện thoại + máy tính) cùng viết lưu bút/chat, rồi gửi link cho nhóm lớp.
 
 ## Đợt 3a (đã làm): nhiều lớp học, tìm lớp, nhảy, phố ngoài cổng, Đền Trạng Trình
 - Phòng học trên 5 dãy (số phòng đánh từ tầng 1, Dãy nhà chính, gần sân trước). Số phòng mỗi dãy là chia đều theo chiều dài (đoán). TỪ ĐỢT 4c: KHÔNG tự xếp lớp nữa, xem mục Đợt 4c.
