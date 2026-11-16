@@ -126,6 +126,7 @@ select{min-height:44px}select option{background:#21372d;color:#f3f0e6}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.tabs button{min-height:38px;padding:0 13px;font-size:14px;background:rgba(255,255,255,.05);color:var(--chalk);border:2px solid var(--line)}.tabs button.on{background:var(--y);color:#1b2b23;border-color:var(--y)}
 #chList{height:min(46vh,380px);overflow:auto;border:2px solid var(--line);border-radius:4px;padding:8px 10px;background:rgba(0,0,0,.18)}
 .msg{margin:6px 0}.msg b{font-size:14px;color:var(--y)}.msg .small{display:inline;margin-left:6px}.msg p{margin:1px 0 0;white-space:pre-wrap;word-break:break-word}
+.msg .quote{display:block;border-left:3px solid var(--y);padding:1px 8px;margin:2px 0;font-size:12.5px;opacity:.8;cursor:pointer;text-align:left}.msg .rp{background:none;border:0;color:var(--y);font:inherit;font-size:12px;cursor:pointer;padding:0 4px;opacity:.75}.msg.hl{outline:2px solid var(--y)}#chRep{display:flex;align-items:center;gap:6px;font-size:12.5px;border-left:3px solid var(--y);padding:2px 8px;margin:4px 0}#chRep span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .msg.me{text-align:right}.msg.me p{display:inline-block;background:rgba(243,211,107,.18);border:1.5px solid rgba(243,211,107,.6);color:var(--chalk);border-radius:6px;padding:4px 10px}
 #chForm{display:flex;gap:8px;margin-top:8px}#chForm input{flex:1}
 #onl{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 2px}#onl span{font-size:13px;color:var(--green);border:1.5px solid rgba(166,227,181,.55);border-radius:4px;padding:2px 9px}
@@ -305,6 +306,7 @@ select{min-height:44px}select option{background:#21372d;color:#f3f0e6}
     <p class="small" id="onlN">Đang online</p><div id="onl"></div>
     <div class="tabs" id="chTabs"></div>
     <div id="chList"></div>
+    <div id="chRep" hidden><span></span><button type="button" class="ghost" id="chRepX" style="min-height:28px;padding:0 8px">✕</button></div>
     <form id="chForm" autocomplete="off"><input id="chIn" maxlength="300" placeholder="Nhắn gì đó…" aria-label="Tin nhắn"><button class="pri" type="submit">Gửi</button></form>
     <div class="frow"><span class="small">Tin nhắn giữ 30 ngày.</span><button class="ghost" id="chCode" type="button" style="min-height:36px;padding:0">Mã của tôi</button></div>
   </div>
@@ -1576,10 +1578,15 @@ function rooms(){const r=[['truong','Toàn trường']];if(ME&&ME.khoa)r.push([M
 function updOn(){const n=peers.size+(live&&live.readyState===1?1:0);const b=$('#bOn');b.textContent='💬 Chat · online '+n+(unread?' · '+unread+' tin mới':'');b.classList.toggle('dot',n>1||unread>0)}
 function renderOnl(){const me=ME?[`<span>${esc(ME.name)} (bạn)</span>`]:[];const list=me.concat([...peers.values()].map(o=>`<span>${esc(o.info.name)}${o.info.khoa?' · K'+esc(o.info.khoa.slice(0,4)):''}</span>`));$('#onl').innerHTML=list.join('');$('#onlN').textContent='Đang online: '+list.length+' người'}
 function renderTabs(){$('#chTabs').innerHTML=rooms().map(([k,t])=>`<button data-r="${esc(k)}" class="${k===chatRoom?'on':''}">${esc(t)}</button>`).join('')}
-$('#chTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;chatRoom=b.dataset.r;renderTabs();loadRoom(chatRoom)});
+$('#chTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;chatRoom=b.dataset.r;setReply(null);renderTabs();loadRoom(chatRoom)});
+let chReply=null;
+function setReply(m){chReply=m?{id:m.id,name:m.name,text:m.text}:null;const r=$('#chRep');r.hidden=!chReply;if(chReply)r.querySelector('span').textContent='Trả lời '+chReply.name+': '+String(chReply.text).slice(0,60);}
+$('#chRepX').onclick=()=>{setReply(null);$('#chIn').focus()};
+$('#chList').addEventListener('click',e=>{const rb=e.target.closest('[data-rp]');if(rb){const m=(chatCache[chatRoom]||[]).find(x=>x.id===+rb.dataset.rp);if(m){setReply(m);$('#chIn').focus()}return}
+ const q=e.target.closest('[data-go]');if(q){const el=$('#chList').querySelector('.msg[data-id="'+q.dataset.go+'"]');if(el){el.scrollIntoView({block:'center'});el.classList.add('hl');setTimeout(()=>el.classList.remove('hl'),1500)}}});
 async function loadRoom(r){if(!chatLoaded[r]){try{const j=await api('/msgs?room='+encodeURIComponent(r));const have=chatCache[r]||[];chatCache[r]=j.msgs.concat(have.filter(x=>!j.msgs.some(y=>y.id===x.id)));chatLoaded[r]=true}catch(e){chatCache[r]=chatCache[r]||[]}}renderChat()}
 function renderChat(){const L=$('#chList');const arr=chatCache[chatRoom]||[];
- L.innerHTML=arr.length?arr.map(x=>{const mine=ME&&x.uid===ME.id;return `<div class="msg${mine?' me':''}"><b>${mine?'Bạn':esc(x.name)}</b><span class="small">${esc(subOf(x))} · ${new Date(x.ts).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'numeric'})}</span><p>${esc(x.text)}</p></div>`}).join(''):'<p class="small" style="padding:12px 0">Chưa có tin nhắn nào. Bạn chào mọi người trước nhé.</p>';
+ L.innerHTML=arr.length?arr.map(x=>{const mine=ME&&x.uid===ME.id;const q=x.reply?(x.reply.gone?'<span class="quote">Tin gốc đã bị xoá</span>':`<span class="quote" data-go="${x.reply.id}"><b>${esc(x.reply.name)}</b>: ${esc(x.reply.text)}</span>`):'';return `<div class="msg${mine?' me':''}" data-id="${x.id}"><b>${mine?'Bạn':esc(x.name)}</b><span class="small">${esc(subOf(x))} · ${new Date(x.ts).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'numeric'})}</span> <button type="button" class="rp" data-rp="${x.id}">↩ Trả lời</button>${q}<p>${esc(x.text)}</p></div>`}).join(''):'<p class="small" style="padding:12px 0">Chưa có tin nhắn nào. Bạn chào mọi người trước nhé.</p>';
  L.scrollTop=L.scrollHeight}
 function gotChat(m){(chatCache[m.room]=chatCache[m.room]||[]);if(!chatCache[m.room].some(x=>x.id===m.id))chatCache[m.room].push(m);
  const o=peers.get(m.uid);if(o)bubbleOn(o.g,m.text,o);else if(ME&&m.uid===ME.id&&avatar.visible)bubbleOn(avatar,m.text);
@@ -1587,7 +1594,7 @@ function gotChat(m){(chatCache[m.room]=chatCache[m.room]||[]);if(!chatCache[m.ro
 function openChat(){if(!KEY){toast('Bạn bấm "Vào trường" và nhập tên trước nhé.');return}unread=0;updOn();renderOnl();renderTabs();$('#chat').hidden=false;loadRoom(chatRoom);setTimeout(()=>{if(!isTouch)$('#chIn').focus()},60)}
 $('#bOn').onclick=openChat;
 $('#chForm').addEventListener('submit',e=>{e.preventDefault();const t=$('#chIn').value.trim();if(!t)return;if(!live||live.readyState!==1){toast('Đang kết nối lại, bạn thử lại sau vài giây nhé.');liveStart();return}
- live.send(JSON.stringify({t:'chat',room:chatRoom,text:t.slice(0,300)}));$('#chIn').value=''});
+ live.send(JSON.stringify({t:'chat',room:chatRoom,text:t.slice(0,300),reply:chReply?chReply.id:0}));$('#chIn').value='';setReply(null)});
 
 /* --- sổ lớp --- */
 let soPeople=[];
@@ -4083,7 +4090,7 @@ function buildLua(){
   // bản xem thử (chưa có máy chủ): tự giả lập
   if(path==='/camps/claim'){if(demo.mine)throw new Error('Bạn đang giữ một cụm trại rồi. Bấm "Trả trại" trước nếu muốn đổi chỗ.');if(demo.camps.find(c=>c.id===body.id))throw new Error('Cụm này bạn khác nhận trước rồi.');demo.mine={id:body.id,uid:'me',name:'Bạn',style:body.style,ts:Date.now()}}
   else if(path==='/camps/style'){if(demo.mine)demo.mine.style=body.style}else if(path==='/camps/leave')demo.mine=null;
-  else if(path==='/music/pick'){S.music={vid:body.vid,title:(MUSICS.find(m=>m[0]===body.vid)||[0,'Bài bạn chọn'])[1],name:'Bạn',ts:Date.now()}}
+  else if(path==='/music/pick'&&!MUSICS.find(m=>m[0]===body.vid))return{ok:true,pending:true,title:'Bài bạn chọn'};else if(path==='/music/pick'){S.music={vid:body.vid,title:(MUSICS.find(m=>m[0]===body.vid)||[0,'Bài bạn chọn'])[1],name:'Bạn',ts:Date.now()}}
   return{ok:true}}
  const repaint=()=>{camps.forEach(c=>paint(c));if(modalOpen)renderCampModal()};
  let modalOpen=false,curCamp=-1;
@@ -4113,14 +4120,14 @@ function buildLua(){
   pl.hidden=false;pl.querySelector('[data-t]').textContent='🎵 '+m.title+' · '+(m.name||'?')+' chọn';
   if(playing!==m.vid+m.ts){playing=m.vid+m.ts;const st=Math.max(0,Math.floor(el/1000));pl.querySelector('[data-v]').innerHTML='<iframe title="'+m.title.replace(/"/g,'')+'" width="100%" height="'+(LOW?105:140)+'" style="border:0" src="https://www.youtube-nocookie.com/embed/'+m.vid+'?autoplay=1&start='+st+'&rel=0&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>'}}
  setInterval(musicUpdate,3000);
- const mm=mkModal('campMus','<div class="head"><h2 class="hand">Nhạc lửa trại</h2><button class="chip" data-close>Đóng</button></div><p class="small" id="muNow"></p><p class="small">Ai chọn bài thì bài đó phát cho mọi người đứng gần đống lửa và sân khấu (mỗi người chọn 1 bài / 5 phút, phát khoảng 5 phút). Chọn trong danh sách hoặc dán link YouTube bài bạn thích vào ô bên dưới. Là video chính chủ trên YouTube; nếu chủ video chặn nhúng thì không nghe được. Bản remix không có trong danh sách vì phần lớn là bản đăng lại, chưa rõ bản quyền.</p><div style="display:flex;gap:6px;margin:6px 0"><input id="muLink" placeholder="Dán link YouTube (youtube.com/watch?v=… hoặc youtu.be/…)" style="flex:1;min-width:0;padding:8px"><button class="chip" id="muGo">Phát</button></div><div id="muList" style="display:grid;gap:8px"></div>');
+ const mm=mkModal('campMus','<div class="head"><h2 class="hand">Nhạc lửa trại</h2><button class="chip" data-close>Đóng</button></div><p class="small" id="muNow"></p><p class="small">Ai chọn bài thì bài đó phát cho mọi người đứng gần đống lửa và sân khấu (mỗi người chọn 1 bài / 5 phút, phát khoảng 5 phút). Chọn trong danh sách hoặc dán link YouTube bài bạn thích vào ô bên dưới (bài dán link phải chờ người lập trang duyệt mới phát). Là video chính chủ trên YouTube; nếu chủ video chặn nhúng thì không nghe được. Bản remix không có trong danh sách vì phần lớn là bản đăng lại, chưa rõ bản quyền.</p><div style="display:flex;gap:6px;margin:6px 0"><input id="muLink" placeholder="Dán link YouTube (youtube.com/watch?v=… hoặc youtu.be/…)" style="flex:1;min-width:0;padding:8px"><button class="chip" id="muGo">Phát</button></div><div id="muList" style="display:grid;gap:8px"></div>');
  function renderMus(){mm.querySelector('#muNow').textContent=S.music?'Đang phát: '+S.music.title+' (do '+(S.music.name||'?')+' chọn)':'Chưa có bài nào. Bạn chọn bài đầu tiên nhé!';const l=mm.querySelector('#muList');l.innerHTML='';
   MUSICS.forEach(([id,t,g])=>{const b=document.createElement('button');b.className='chip';b.style.textAlign='left';b.textContent='▶ '+t+' · '+g;b.onclick=async()=>{try{await cpost('/music/pick',{vid:id});muted=false;await cget();toast('Đã chọn: '+t);mm.hidden=true}catch(e){toast(e.message||'Lỗi mạng')}};l.appendChild(b)})}
  acts.push({x:FX,z:FZ,r:5.5,l:'🎵 Chọn nhạc lửa trại',f:()=>{renderMus();mm.hidden=false;cget()}});
  acts.push({x:K_X,z:-27.5,r:5,l:'🎵 Chọn nhạc sân khấu',f:()=>{renderMus();mm.hidden=false;cget()}});
  const ytId=v=>{v=String(v||'').trim();let m=v.match(/(?:youtu\.be\/|v=|\/shorts\/|\/embed\/|\/live\/)([A-Za-z0-9_-]{11})/);if(m)return m[1];return /^[A-Za-z0-9_-]{11}$/.test(v)?v:''};
  mm.querySelector('#muGo').onclick=async()=>{const id=ytId(mm.querySelector('#muLink').value);if(!id){toast('Link chưa đúng. Dán link YouTube của bài hát nhé.');return}
-  try{await cpost('/music/pick',{vid:id});muted=false;mm.querySelector('#muLink').value='';await cget();toast('Đã gửi bài, đang phát cho mọi người gần lửa và sân khấu');mm.hidden=true}catch(e){toast(e.message||'Lỗi mạng')}};
+  try{const r=await cpost('/music/pick',{vid:id});mm.querySelector('#muLink').value='';if(r&&r.pending){toast('Đã gửi bài "'+(r.title||'')+'". Chờ người lập trang duyệt thì sẽ phát cho mọi người nhé.')}else{muted=false;await cget();toast('Đã chọn bài, đang phát cho mọi người gần lửa và sân khấu')}mm.hidden=true}catch(e){toast(e.message||'Lỗi mạng')}};
  const _ws=window.__campsMsg=(m)=>{if(m.t==='camps'||m.t==='music')cget()};
  /* ===== hoạt hình mỗi khung hình ===== */
  let tt=0,wasOn=false;

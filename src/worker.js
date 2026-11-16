@@ -121,12 +121,15 @@ export class School extends DurableObject {
       CREATE TABLE IF NOT EXISTS hits(k TEXT, ts INTEGER);
       CREATE INDEX IF NOT EXISTS hits_k ON hits(k, ts);
     `);
+    try { this.sql.exec('ALTER TABLE msgs ADD COLUMN reply INTEGER'); } catch (e) { /* đã có cột */ }
   }
   row(q, ...a) { const r = this.sql.exec(q, ...a).toArray(); return r[0] || null; }
   campList() {
     this.sql.exec('DELETE FROM camps WHERE seen<?', Date.now() - CAMP_IDLE);
     return this.all('SELECT c.id,c.uid,c.style,c.ts,u.name FROM camps c LEFT JOIN users u ON u.id=c.uid ORDER BY c.id');
   }
+  musicQ() { const r = this.row("SELECT v FROM meta WHERE k='musicq'"); try { return r ? JSON.parse(r.v) : []; } catch (e) { return []; } }
+  setMusicQ(a) { this.sql.exec("INSERT INTO meta(k,v) VALUES('musicq',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", JSON.stringify(a)); }
   campMusic() { const r = this.row("SELECT v FROM meta WHERE k='campmusic'"); try { return r ? JSON.parse(r.v) : null; } catch (e) { return null; } }
   all(q, ...a) { return this.sql.exec(q, ...a).toArray(); }
   // giới hạn số lần làm một việc trong một khoảng thời gian (chống phá)
@@ -152,7 +155,8 @@ export class School extends DurableObject {
     return this.all('SELECT c.room,c.khoa,c.lop,c.uid,c.ts,u.name FROM rclaims c LEFT JOIN users u ON u.id=c.uid ORDER BY c.ts');
   }
   noteOut(r) { return { id: r.id, uid: r.uid, text: r.text, ts: r.ts, name: r.name, lop: r.lop, khoa: r.khoa, role: r.role }; }
-  msgOut(r) { return { id: r.id, room: r.room, uid: r.uid, text: r.text, ts: r.ts, name: r.name, lop: r.lop, khoa: r.khoa, role: r.role }; }
+  replyOf(id) { const x = this.row('SELECT m.id,m.text,u.name FROM msgs m JOIN users u ON u.id=m.uid WHERE m.id=?', id); return x ? { id: x.id, name: x.name, text: String(x.text).slice(0, 80) } : { id, gone: true }; }
+  msgOut(r) { return { id: r.id, room: r.room, uid: r.uid, text: r.text, ts: r.ts, name: r.name, lop: r.lop, khoa: r.khoa, role: r.role, reply: r.reply ? this.replyOf(r.reply) : null }; }
   photoOut(r) { return { id: r.id, uid: r.uid, kind: r.kind, lop: r.lop, khoa: r.khoa, cap: r.cap, ts: r.ts, ok: r.ok, name: r.name }; }
   meetOut(r) { return { id: r.id, room: r.room, title: r.title, at: r.at, uid: r.uid, name: r.name, lop: r.lop, khoa: r.khoa }; }
   meetRows(extra) {
@@ -404,6 +408,10 @@ export class School extends DurableObject {
           } catch (e) { return json({ error: 'Chưa kiểm tra được video, bạn thử lại sau ít phút.' }, 502); }
         }
         const m = { vid, title, uid: me.id, name: me.name, ts: Date.now() };
+        if (!MUSIC[vid]) { // bài tự dán link: chờ người lập trang duyệt rồi mới phát
+          const q = this.musicQ().filter(x => x.vid !== vid); q.push(m); this.setMusicQ(q.slice(-30));
+          return json({ ok: true, pending: true, title });
+        }
         this.sql.exec("INSERT INTO meta(k,v) VALUES('campmusic',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", JSON.stringify(m));
         this.broadcast({ t: 'music' }); return json({ ok: true });
       }
@@ -475,7 +483,7 @@ export class School extends DurableObject {
         const photos = this.all("SELECT p.id,p.uid,p.kind,p.lop,p.khoa,p.cap,p.ts,p.ok,u.name FROM photos p JOIN users u ON u.id=p.uid ORDER BY p.ok ASC, p.id DESC LIMIT 200").map(r => this.photoOut(r));
         const pending = this.row('SELECT COUNT(*) c FROM photos WHERE ok=0').c;
         const sigs = this.all('SELECT uid,ts FROM sigs');
-        return json({ notes, msgs, users, photos, pending, claims: this.roomClaims(), meets: this.meetRows(), sigs });
+        return json({ notes, msgs, users, photos, pending, music: this.musicQ(), mpend: this.musicQ().length, claims: this.roomClaims(), meets: this.meetRows(), sigs });
       }
       case 'delNote': this.sql.exec('DELETE FROM notes WHERE id=?', Number(b.id)); this.broadcast({ t: 'delnote', id: Number(b.id) }); return json({ ok: true });
       case 'delMsg': this.sql.exec('DELETE FROM msgs WHERE id=?', Number(b.id)); this.broadcast({ t: 'delmsg', id: Number(b.id) }); return json({ ok: true });
@@ -510,6 +518,13 @@ export class School extends DurableObject {
         else { if (!MUSIC[vid]) return json({ error: 'Bài không có trong danh sách.' }, 400); this.sql.exec("INSERT INTO meta(k,v) VALUES('campmusic',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", JSON.stringify({ vid, title: MUSIC[vid], uid: '', name: 'Người lập trang', ts: Date.now() })); }
         this.broadcast({ t: 'music' }); return json({ ok: true });
       }
+      case 'musicOk': {
+        const q = this.musicQ(), it = q.find(x => x.vid === String(b.id)); if (!it) return json({ error: 'Bài này không còn trong hàng chờ.' }, 404);
+        this.setMusicQ(q.filter(x => x.vid !== it.vid));
+        this.sql.exec("INSERT INTO meta(k,v) VALUES('campmusic',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", JSON.stringify(Object.assign({}, it, { ts: Date.now() })));
+        this.broadcast({ t: 'music' }); return json({ ok: true });
+      }
+      case 'musicNo': this.setMusicQ(this.musicQ().filter(x => x.vid !== String(b.id))); return json({ ok: true });
       case 'unban': this.sql.exec('UPDATE users SET banned=0 WHERE id=?', String(b.id)); return json({ ok: true });
       case 'resetPass': {
         if (String(b.newPass || '').length < 8) return json({ error: 'Mật khẩu mới cần ít nhất 8 ký tự.' }, 400);
@@ -560,9 +575,10 @@ export class School extends DurableObject {
       if (a.c.length >= 15) { ws.send(JSON.stringify({ t: 'err', text: 'Bạn nhắn nhanh quá, đợi một chút nhé.' })); return; }
       a.c.push(now); ws.serializeAttachment(a);
       const me = this.row('SELECT * FROM users WHERE id=?', a.u.id); if (!me || me.banned) return;
-      const r = this.row('INSERT INTO msgs(room,uid,text,ts) VALUES(?,?,?,?) RETURNING id', room, me.id, text, now);
+      let rid = Number(m.reply) || 0; if (rid && !this.row('SELECT id FROM msgs WHERE id=? AND room=?', rid, room)) rid = 0;
+      const r = this.row('INSERT INTO msgs(room,uid,text,ts,reply) VALUES(?,?,?,?,?) RETURNING id', room, me.id, text, now, rid || null);
       if (Math.random() < 0.05) this.sql.exec('DELETE FROM msgs WHERE ts<?', now - CHAT_KEEP);
-      this.broadcast({ t: 'chat', msg: this.msgOut(Object.assign({}, me, { id: r.id, room, uid: me.id, text, ts: now })) });
+      this.broadcast({ t: 'chat', msg: this.msgOut(Object.assign({}, me, { id: r.id, room, uid: me.id, text, ts: now, reply: rid || null })) });
       return;
     }
     if (m.t === 'ping') { try { ws.send('{"t":"pong"}'); } catch (e) { } }
