@@ -688,7 +688,7 @@ function build(){
  for(let x=-60;x<=82;x+=7.5){if(Math.abs(x-gx)<5||Math.abs(x-44)<5)continue;flat(1.3,1.3,x,18.9,M(0x5a4636),.1)}
  for(let x=-55;x<=80;x+=30){const p=new THREE.Mesh(new THREE.CylinderGeometry(.12,.17,9,8),M(0x8c8c8c));p.position.set(x+3.5,4.5,19.9);p.castShadow=true;scene.add(p)}
  const hedge=M(0x5f8f45);
- [[-14.5,-24.5,.8,19],[18.5,-24.5,.8,19],[-15,.5,.8,29],[40,.5,.8,29],[-9.7,-14.5,10.5,.8],[22,-14.5,36,.8]].forEach(([x,z,w,d])=>box(w,.7,d,hedge,x,.35,z));
+ // (đợt 13: đã bỏ 6 dải rào cỏ xanh quanh sân trước dãy chính theo lời sếp)
 
  // tượng Danh nhân văn hóa Trạng Trình Nguyễn Bỉnh Khiêm, quay mặt ra cổng
  const SZ=0,SX=0;
@@ -1810,7 +1810,6 @@ corrDone=window.__CORR.length}
 addRect(K_X-7.5,K_X+7.5,-36.1,-31.1,1.06);addRect(K_X-2.5,K_X+2.5,-30.1,-29.7,.33);addRect(K_X-2.2,K_X+2.2,-30.7,-30.1,.66);addRect(K_X-1.9,K_X+1.9,-31.1,-30.7,.99);
 addRect(K_X-3.95,K_X-3.05,-32.7,-32.1,2.2);
 // bồn cây dọc lối đi (cao 0,7 m: nhảy lên được)
-[[-14.5,-24.5,.8,19],[18.5,-24.5,.8,19],[-15,.5,.8,29],[40,.5,.8,29],[-9.7,-14.5,10.5,.8],[22,-14.5,36,.8]].forEach(([x,z,w,d])=>addRect(x-w/2,x+w/2,z-d/2,z+d/2,.7));
 // ghế đá
 [[5.5,-3.2,0],[-4,-9.5,Math.PI/2],[24,-1,0],[12,6,Math.PI/2],[30,12,0],[-12.5,2,Math.PI/2]].forEach(([x,z,r])=>addSurf(x,z,r,-.9,.9,-.25,.25,.54,.54));
 // cầu Lạng Am: mặt cầu cao 0,8 m, hai đầu dốc
