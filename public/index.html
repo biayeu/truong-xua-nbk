@@ -4297,6 +4297,58 @@ function buildHau(){
  GOTO.push(['Quán bánh mì, bánh ngọt cổng sau',76,WZ-3,Math.PI],['Cổng sau trường',GX,WZ+4,0],['Nhà xe sau',79.5,-84,Math.PI],['Đường sau trường',GX+2,WZ-7,-Math.PI/2]);try{const e=$('#goList');if(e)e.innerHTML=GOTO.map((q,i)=>`<button type="button" data-i="${i}">${q[0]}</button>`).join('')}catch(_){}
 }
 
+/* ---------- ĐỢT 13b: ĐÈN LASER SÂN KHẤU (buổi tối) + ÂM THANH CẮM TRẠI (lửa nổ, tiếng cười nói quanh lửa) ---------- */
+function buildDem(){
+ const FORCE=/[?&]laser=1/.test(location.search)||/[?&]lua=1/.test(location.search);
+ const isNight=()=>FORCE||(()=>{const h=hourNow();return h>=17.5||h<5})();
+ // ===== đèn laser: dàn đèn treo ở mép sau sân khấu, chùm tia quét về phía khán giả =====
+ const G=new THREE.Group();scene.add(G);G.visible=false;
+ const SX=K_X,SZ=-34.9,SY=4.6,N=isTouch?4:6,B=isTouch?3:4,LEN=34;
+ const dark=M(0x16181c);
+ box(15.6,.16,.16,dark,SX,SY+.1,SZ,scene,false);[-7.6,7.6].forEach(dx=>box(.14,SY+.2,.14,dark,SX+dx,(SY+.2)/2,SZ,scene,false));
+ const cols=[0x00ff66,0xff2a2a,0x33ccff,0xff33ff,0xffee33,0x66ff33];
+ const beams=[];
+ for(let i=0;i<N;i++){const ex=SX-6+i*(12/(N-1));
+  box(.34,.28,.34,dark,ex,SY-.1,SZ,scene,false);
+  const em=new THREE.Group();em.position.set(ex,SY-.25,SZ);G.add(em);
+  for(let j=0;j<B;j++){const geo=new THREE.CylinderGeometry(.04,.04,LEN,6,1,true);geo.rotateX(Math.PI/2);geo.translate(0,0,LEN/2);
+   const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:cols[(i+j)%cols.length],transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+   m.frustumCulled=false;em.add(m);beams.push({m,i,j,ph:Math.random()*6.28,sp:.6+Math.random()*.9})}}
+ // ánh sáng đỏ-xanh nháy phủ sân khấu
+ const wash=new THREE.PointLight(0xff2a6a,0,40,1.6);wash.position.set(SX,3,SZ+2);scene.add(wash);
+ let modeT=0,mode=0;
+ anim.push((dt,t)=>{const on=isNight()&&pos.y<40&&Math.hypot(pos.x-SX,pos.z+20)<130;G.visible=on;if(!on){wash.intensity=0;return}
+  modeT+=dt;if(modeT>7){modeT=0;mode=(mode+1)%3}
+  const st=Math.floor(t*(mode===2?9:4));
+  beams.forEach(b=>{const k=b.j-(B-1)/2;let yaw,pit;
+   if(mode===0){yaw=Math.sin(t*b.sp+b.ph)*.9+k*.28;pit=-.12-(.35+.3*Math.sin(t*b.sp*.7+b.ph))*.8}
+   else if(mode===1){const a=t*b.sp*1.3+b.ph;yaw=Math.sin(a)*.7;pit=-.1-Math.abs(Math.cos(a))*.55+k*.1}
+   else{yaw=(((st+b.i)%5)-2)*.38+k*.12;pit=-.1-(((st+b.j)%3))*.28}
+   b.m.rotation.set(pit,yaw,0,'YXZ');
+   b.m.material.opacity=mode===2?(((st+b.i+b.j)%2)?.85:.1):.55+.3*Math.sin(t*6+b.ph);
+   });
+  wash.intensity=mode===2?(st%2?1.6:.3):.8+.5*Math.sin(t*3);wash.color.setHex(cols[(Math.floor(t*1.5))%cols.length])});
+ // ===== âm thanh cắm trại =====
+ const FX=-6.5,FZ=-23.5;
+ let nb=null,lastBurst=0,laughBuf=null,laughLoading=false,nextLaugh=0;
+ const fireOn=()=>FORCE||(()=>{const h=hourNow();return h>=17.5&&h<22.5})();
+ const noise=()=>{if(nb||!AC)return nb;const n=AC.sampleRate*2,b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);let lp=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;lp+=(w-lp)*.04;d[i]=w*.5+lp*2}nb=b;return b};
+ let roar=null,rg=null;
+ function ensureRoar(){if(roar||!AC||!master)return;const src=AC.createBufferSource();src.buffer=noise();src.loop=true;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=480;rg=AC.createGain();rg.gain.value=0;src.connect(f);f.connect(rg);rg.connect(master);src.start();roar=src}
+ function crackle(v){const t=AC.currentTime,len=.012+Math.random()*.05,s=AC.createBufferSource();s.buffer=noise();const f=AC.createBiquadFilter();f.type='bandpass';f.frequency.value=1200+Math.random()*4200;f.Q.value=.8+Math.random()*2;const g=AC.createGain();g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0008,t+len);s.connect(f);f.connect(g);g.connect(master);s.start(t,Math.random()*1.5,len+.02)}
+ function laughs(v){if(laughLoading||laughBuf===false)return;if(!laughBuf){laughLoading=true;fetch('/am/k1.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>b?new Promise((ok,no)=>{const p=AC.decodeAudioData(b,ok,no);if(p&&p.catch)p.catch(no)}):null).then(b=>{laughBuf=b||false;laughLoading=false}).catch(()=>{laughBuf=false;laughLoading=false});return}
+  const t=AC.currentTime,dur=Math.min(laughBuf.duration,2+Math.random()*2.5),off=Math.random()*Math.max(0,laughBuf.duration-dur),s=AC.createBufferSource();s.buffer=laughBuf;s.playbackRate.value=.92+Math.random()*.16;const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.4);g.gain.linearRampToValueAtTime(0,t+dur);s.connect(g);g.connect(master);s.start(t,off,dur)}
+ setInterval(()=>{
+  if(!AC||!master||!soundOn||AC.state!=='running'||document.hidden){if(rg)rg.gain.setTargetAtTime(0,AC?AC.currentTime:0,.3);return}
+  const d=Math.hypot(pos.x-FX,pos.z-FZ),ok=fireOn()&&pos.y<40&&d<60;
+  if(!ok){if(rg)rg.gain.setTargetAtTime(0,AC.currentTime,.5);return}
+  ensureRoar();const near=Math.pow(Math.max(0,1-d/60),1.6)*(typeof inRoom!=='undefined'&&inRoom?.15:1);
+  rg.gain.setTargetAtTime(.07+.16*near,AC.currentTime,.4);
+  const now=AC.currentTime;if(now-lastBurst>.05+Math.random()*.22){lastBurst=now;const burst=1+(Math.random()<.35?1:0)+(Math.random()<.12?2:0);for(let i=0;i<burst;i++)crackle((.05+Math.random()*.2)*(.15+near))}
+  if(Date.now()>nextLaugh&&near>.08){nextLaugh=Date.now()+9000+Math.random()*22000;laughs(.18*near+.03)}
+ },110);
+}
+
 const fontsReady=Promise.race([Promise.all(['48px "Patrick Hand"','600 48px "Be Vietnam Pro"','700 48px "Dancing Script"'].map(f=>document.fonts?document.fonts.load(f):0)),new Promise(r=>setTimeout(r,3000))]).catch(()=>0);
 fontsReady.then(()=>{
  try{build()}catch(e){console.error(e)}
@@ -4307,6 +4359,7 @@ fontsReady.then(()=>{
  try{buildDot9()}catch(e){console.error(e)}
  try{buildLua()}catch(e){console.error(e)}
  try{buildHau()}catch(e){console.error(e)}
+ try{buildDem()}catch(e){console.error(e)}
  try{buildNuoc()}catch(e){console.error(e)}
  try{buildExtra()}catch(e){console.error(e)}
  try{window.__lowSolids()}catch(e){console.error(e)}
