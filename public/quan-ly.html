@@ -44,7 +44,7 @@ button.pri{background:var(--blue);color:#fff}button.red{background:var(--red);co
  </div>
  <div id="app" hidden>
   <div class="card">
-   <input id="q" placeholder="Tìm theo tên, lớp hoặc chữ trong lời nhắn"> <button id="qGo">Tìm</button> <button id="reload">Tải lại</button>
+   <input id="q" placeholder="Tìm theo tên, lớp hoặc chữ trong lời nhắn"> <button id="qGo">Tìm</button> <button id="reload">Tải lại</button> <button id="muOff" title="Tắt bài đang phát ở lửa trại / sân khấu">Tắt nhạc</button>
    <div class="tabs" id="tabs">
     <button data-t="photos" class="on">Ảnh chờ duyệt<span id="pend"></span></button>
     <button data-t="notes">Lời nhắn</button><button data-t="msgs">Tin chat</button><button data-t="users">Người dùng</button><button data-t="rooms">Phòng học</button><button data-t="pass">Đổi mật khẩu</button>
@@ -97,6 +97,7 @@ $('#body').onclick=async e=>{
  let extra={};if(a==='roomDel'&&!confirm('Bỏ lớp này khỏi phòng?'))return;
  if(a==='roomEdit'){const l=prompt('Tên lớp mới (ví dụ 12A1):',b.dataset.lop);if(!l)return;extra={lop:l}}
  try{await call(Object.assign({action:a,pass:PASS,id:b.dataset.id,room:b.dataset.room,khoa:b.dataset.khoa},extra));load()}catch(err){alert(err.message)}};
+$('#muOff').onclick=async()=>{try{await call({action:'musicSet',pass:PASS,vid:''});alert('Đã tắt nhạc đang phát.')}catch(e){alert(e.message)}};
 $('#qGo').onclick=load;$('#q').addEventListener('keydown',e=>{if(e.key==='Enter')load()});
 $('#reload').onclick=load;$('#out').onclick=()=>{sessionStorage.removeItem('nbk-admin');location.reload()};
 start();

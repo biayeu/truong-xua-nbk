@@ -393,9 +393,17 @@ export class School extends DurableObject {
       }
       // nhạc lửa trại: ai chọn thì bài đó phát cho mọi người gần lửa; mỗi người chọn 1 bài / 5 phút
       if (path === '/music/pick') {
-        const vid = String(b.vid || ''); if (!MUSIC[vid]) return json({ error: 'Bài này không có trong danh sách.' }, 400);
+        const vid = String(b.vid || ''); if (!MUSIC[vid] && !/^[A-Za-z0-9_-]{11}$/.test(vid)) return json({ error: 'Link YouTube chưa đúng. Dán link dạng youtube.com/watch?v=… hoặc youtu.be/…' }, 400);
         if (!this.limit('mu:' + me.id, 1, 300000)) return json({ error: 'Bạn vừa chọn bài rồi, 5 phút sau chọn tiếp nhé (để mọi người cùng được chọn).' }, 429);
-        const m = { vid, title: MUSIC[vid], uid: me.id, name: me.name, ts: Date.now() };
+        let title = MUSIC[vid];
+        if (!title) { // bài tự dán link: hỏi YouTube xem video có thật và cho nhúng không, lấy luôn tên bài
+          try {
+            const r = await fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + vid));
+            if (!r.ok) return json({ error: 'Video này không có hoặc chủ video chặn nhúng nên không phát được. Bạn thử bài khác nhé.' }, 400);
+            const j = await r.json(); title = String(j.title || '').replace(/[<>"]/g, '').slice(0, 90) || 'Bài bạn chọn';
+          } catch (e) { return json({ error: 'Chưa kiểm tra được video, bạn thử lại sau ít phút.' }, 502); }
+        }
+        const m = { vid, title, uid: me.id, name: me.name, ts: Date.now() };
         this.sql.exec("INSERT INTO meta(k,v) VALUES('campmusic',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", JSON.stringify(m));
         this.broadcast({ t: 'music' }); return json({ ok: true });
       }
