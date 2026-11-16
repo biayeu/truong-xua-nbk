@@ -181,6 +181,7 @@ select{min-height:44px}select option{background:#21372d;color:#f3f0e6}
     <button id="bPhoto" class="chip sm hot">📷 Chụp ảnh chung</button>
     <button id="bGb" class="chip sm hot">Lưu bút</button>
     <button id="bOn" class="chip sm hot" hidden>💬 Chat · online 0</button>
+    <button id="bAdm" class="chip sm hot" hidden>🛡️ Admin</button>
     <button id="bSo" class="chip sm hot" hidden>Sổ lớp</button>
     <button id="bMeet" class="chip sm hot" hidden>Hẹn gặp</button>
     <button id="bFind" class="chip sm hot" hidden>Tìm lớp</button>
@@ -1044,7 +1045,7 @@ function shrinkImg(file,max,square,q){return new Promise((res,rej)=>{const url=U
  let d=c.toDataURL('image/jpeg',q);for(let qq=q-.1;d.length>(square?100000:900000)&&qq>.3;qq-=.1)d=c.toDataURL('image/jpeg',qq);res(d)};im.onerror=()=>{URL.revokeObjectURL(url);rej()};im.src=url})}
 /* --- nhân vật --- */
 const avatar=new THREE.Group();scene.add(avatar);avatar.visible=false;
-let avParts=null,avName=null;
+let avParts=null,avName=null;const ADM={pass:'',on:false};try{ADM.pass=localStorage.getItem('nbk-adm')||''}catch(e){}
 // hình vẽ áo theo ảnh thật sếp gửi (vẽ một lần rồi dùng lại)
 const TXC={};
 const txc=(k,w,h,f)=>TXC[k]||(TXC[k]=ctex(w,h,f));
@@ -1151,12 +1152,12 @@ function makeAv(P,avatar){
  const parts={legL,legR,kneeL,kneeR,armL,armR,elbL,elbR,body,torsoG,head,gest:{t:0},ph:0,lean:0};
  // biển tên trên đầu, có ảnh đại diện tròn nếu có
  const avName=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true}));avName.position.y=acc.includes('nonla')?2.15:2.05;avName.visible=false;avatar.add(avName);
- const nm=((P.look&&P.look.nick)||P.name||'Khách').slice(0,26),sub=P.role==='gv'?'Thầy/Cô':(P.khoa||'');
+ let nm=((P.look&&P.look.nick)||P.name||'Khách').slice(0,26),sub=P.role==='gv'?'Thầy/Cô':(P.khoa||'');const isAd=!!P.adm;if(isAd)sub='ADMIN'+(sub?' · '+sub:'');
  const paint=img=>{const c=document.createElement('canvas').getContext('2d');c.font='600 40px "Be Vietnam Pro", sans-serif';const ph=img?(sub?88:56):0;
   const W=Math.ceil(Math.max(c.measureText(nm).width,sub?c.measureText(sub).width*.7:0)+40+(ph?ph+10:0)),H=sub?100:64;
   const t=ctex(W,H,(g,w,h)=>{g.fillStyle='rgba(42,33,27,.78)';rr(g,2,2,w-4,h-4,16);g.fill();const x0=ph?ph+16:0;
    if(img){g.save();g.beginPath();g.arc(6+ph/2,h/2,ph/2,0,7);g.clip();g.drawImage(img,6,h/2-ph/2,ph,ph);g.restore();g.strokeStyle='#ffe27a';g.lineWidth=3;g.beginPath();g.arc(6+ph/2,h/2,ph/2,0,7);g.stroke()}
-   g.fillStyle='#fff';g.font='600 40px "Be Vietnam Pro", sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(nm,x0+(w-x0)/2,32);if(sub){g.fillStyle='#ffe27a';g.font='28px "Be Vietnam Pro", sans-serif';g.fillText(sub,x0+(w-x0)/2,76)}});
+   g.fillStyle='#fff';g.font='600 40px "Be Vietnam Pro", sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(nm,x0+(w-x0)/2,32);if(sub){g.fillStyle=isAd?'#ff8a7a':'#ffe27a';g.font=(isAd?'700 28px':'28px')+' "Be Vietnam Pro", sans-serif';g.fillText(sub,x0+(w-x0)/2,76)}});
   if(avName.material.map)avName.material.map.dispose();avName.material.map=t;avName.material.needsUpdate=true;const hgt=sub?.4:.27;avName.scale.set(hgt*W/H,hgt,1)};
  paint(null);
  const src=P._avUrl||(P.av&&P.id&&SRV?'/api/avatar?id='+encodeURIComponent(P.id)+'&v='+P.av:null);
@@ -1195,14 +1196,20 @@ function animAv(P,dt,st){const sp=st.speed||0,run=sp>4.2;
  P.armL.rotation.z=-.06;P.armR.rotation.z=.06;
  lerp(P.torsoG.rotation,'x',lean,8);lerp(P.head.rotation,'x',-lean*.5,8);
  P.body.position.y=bob-squat*.32;
+ if(P.gest&&P.gest.dance&&(sp>.25||st.air||st.riding||st.sit))P.gest.end=0;
  applyGesture(P,dt)}
 // vẫy tay / tạo dáng chụp ảnh
-function gesture(parts,kind){if(parts)parts.gest={end:performance.now()+(kind==='wave'?2600:4500),kind}}
+function gesture(parts,kind){if(parts)parts.gest={end:performance.now()+(kind==='wave'?2600:/^dance/.test(kind)?15000:4500),kind,dance:/^dance/.test(kind),t0:performance.now()}}
 function applyGesture(parts,dt){const g=parts&&parts.gest;if(!g)return;const left=((g.end||0)-performance.now())/1000;if(left>0){g.t=left;
-  if(g.kind==='wave'){parts.armR.rotation.x=-2.9;parts.armR.rotation.z=.35+Math.sin(g.t*14)*.35}
+  if(g.dance){const t=(performance.now()-g.t0)/1000,L=parts.legL.rotation,R=parts.legR.rotation,aL=parts.armL.rotation,aR=parts.armR.rotation,s1=Math.sin(t*7),s2=Math.sin(t*3.5),c1=Math.cos(t*7);
+   if(g.kind==='dance0'){/* nhún nhảy giơ tay */parts.body.position.y=Math.abs(s1)*.09;L.x=-.35;R.x=-.35;parts.kneeL.rotation.x=parts.kneeR.rotation.x=.5+Math.abs(s1)*.35;aR.x=-2.7+s1*.35;aL.x=-2.7-s1*.35;aR.z=.5;aL.z=-.5;parts.elbL.rotation.x=parts.elbR.rotation.x=-.4}
+   else if(g.kind==='dance1'){/* lắc hông, tay đưa qua lại */parts.torsoG.rotation.z=s2*.22;parts.body.position.x=s2*.07;parts.body.position.y=Math.abs(Math.sin(t*3.5))*.03;aR.x=-1.9;aL.x=-1.9;aR.z=.5+s2*.7;aL.z=-.5+s2*.7;L.x=-.12;R.x=-.12;parts.kneeL.rotation.x=parts.kneeR.rotation.x=.25}
+   else if(g.kind==='dance2'){/* dậm chân vỗ tay */const up=Math.sin(t*6)>0;L.x=up?-.9:0;R.x=up?0:-.9;parts.kneeL.rotation.x=up?1.2:.1;parts.kneeR.rotation.x=up?.1:1.2;parts.body.position.y=.04+Math.abs(Math.sin(t*6))*.05;const cl=Math.abs(Math.sin(t*6));aR.x=-1.3;aL.x=-1.3;aR.z=-.1-cl*.5;aL.z=.1+cl*.5;parts.elbL.rotation.x=parts.elbR.rotation.x=-1.2}
+   else{/* xoay vòng */parts.body.rotation.y=t*4.2;parts.body.position.y=Math.abs(s2)*.05;aR.x=-2.6;aL.x=-2.6;aR.z=.9;aL.z=-.9;L.x=-.2;R.x=-.2;parts.kneeL.rotation.x=parts.kneeR.rotation.x=.35}}
+  else if(g.kind==='wave'){parts.armR.rotation.x=-2.9;parts.armR.rotation.z=.35+Math.sin(g.t*14)*.35}
   else{parts.armR.rotation.x=-2.5;parts.armR.rotation.z=.25;parts.armL.rotation.x=-.4;parts.armL.rotation.z=-.15}}
- else{parts.armR.rotation.z=0;parts.armL.rotation.z=0}}
-function myP(){return Object.assign({},profile,{id:ME&&ME.id,name:ME?ME.name:profile.name,lop:(profile.lop||'').toUpperCase().replace(/\s+/g,''),_avUrl:myAvUrl})}
+ else{parts.armR.rotation.z=0;parts.armL.rotation.z=0;if(g.dance){g.dance=false;parts.body.rotation.y=0;parts.body.position.x=0;parts.torsoG.rotation.z=0}}}
+function myP(){return Object.assign({},profile,{id:ME&&ME.id,name:ME?ME.name:profile.name,lop:(profile.lop||'').toUpperCase().replace(/\s+/g,''),_avUrl:myAvUrl,adm:ADM.on})}
 function buildAvatar(){const r=makeAv(myP(),avatar);avParts=r.parts;avName=r.avName;const bk=avatar.getObjectByName('bike');if(bk)bk.visible=riding}
 // xem trước nhân vật trong bảng chọn
 {let pr=null,ps=null,pg=null,pc=null,on=false;
@@ -1544,7 +1551,7 @@ function bubbleOn(grp,text,obj){const t=text.length>60?text.slice(0,58)+'…':te
 /* --- kết nối trực tiếp --- */
 function liveStart(){if(!KEY||(live&&live.readyState<2))return;clearTimeout(liveTimer);
  try{live=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/api/live?key='+encodeURIComponent(KEY))}catch(e){return}
- live.onopen=()=>{liveTry=0;lastSent=null};
+ live.onopen=()=>{liveTry=0;lastSent=null;if(ADM.pass)try{live.send(JSON.stringify({t:'adm',pass:ADM.pass}))}catch(e){}};
  live.onmessage=ev=>{let m;try{m=JSON.parse(ev.data)}catch(e){return}
   if(window.__d6&&window.__d6(m)===true)return;
   if(m.t==='hello'&&m.votes){UVOTES=m.votes}
@@ -1552,8 +1559,11 @@ function liveStart(){if(!KEY||(live&&live.readyState<2))return;clearTimeout(live
    const rebuild=o=>{const r=makeAv(Object.assign({role:'hs',sex:'nam',season:'he'},o.info),o.g);o.parts=r.parts;r.avName.visible=true};
    if(m.t==='look'){if(ME&&m.peer.id===ME.id){ME=Object.assign(ME,m.peer);buildAvatar()}else{const o=peers.get(m.peer.id);if(o){o.info=Object.assign(o.info,m.peer);rebuild(o)}}}
    else{peers.forEach(rebuild);buildAvatar();if(window.__drawSetup)window.__drawSetup()}return}
+  if(m.t==='dance'){const o=peers.get(m.id);if(o)gesture(o.parts,'dance'+(m.d|0));return}
   if(m.t==='wave'||m.t==='pose'){const o=peers.get(m.id);if(!o)return;gesture(o.parts,m.t);
    const d=Math.hypot(o.g.position.x-pos.x,o.g.position.z-pos.z);if(o.g.visible&&d<16){if(m.t==='wave')toast(o.info.name+' vẫy tay chào bạn 👋');else{toast(o.info.name+' đang chụp ảnh chung, tạo dáng nào! 📷');gesture(avParts,'pose')}}return}
+  if(m.t==='admok'||m.t==='admno'){if(window.__admRes)window.__admRes(m.t==='admok');return}
+  if(m.t==='adm'){if(ME&&m.id===ME.id){return}const o=peers.get(m.id);if(o){o.info=Object.assign(o.info,{adm:m.on?1:0});const r=makeAv(Object.assign({role:'hs',sex:'nam',season:'he'},o.info),o.g);o.parts=r.parts;r.avName.visible=true}return}
   if(m.t==='photos'){if(typeof photosChanged==='function')photosChanged();return}
   if(m.t==='hello'){peers.forEach((o,id)=>delPeer(id));(m.peers||[]).forEach(addPeer);updOn();if(!$('#chat').hidden)renderOnl();loadNotes()}
   else if(m.t==='join'){addPeer(m.peer);updOn();if(!$('#chat').hidden)renderOnl();if(!ME||m.peer.id!==ME.id)toast(m.peer.name+' vừa vào trường')}
@@ -1582,11 +1592,11 @@ $('#chTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(
 let chReply=null;
 function setReply(m){chReply=m?{id:m.id,name:m.name,text:m.text}:null;const r=$('#chRep');r.hidden=!chReply;if(chReply)r.querySelector('span').textContent='Trả lời '+chReply.name+': '+String(chReply.text).slice(0,60);}
 $('#chRepX').onclick=()=>{setReply(null);$('#chIn').focus()};
-$('#chList').addEventListener('click',e=>{const rb=e.target.closest('[data-rp]');if(rb){const m=(chatCache[chatRoom]||[]).find(x=>x.id===+rb.dataset.rp);if(m){setReply(m);$('#chIn').focus()}return}
+$('#chList').addEventListener('click',e=>{const db=e.target.closest('[data-del]');if(db&&ADM.on){if(window.__admDel)window.__admDel(+db.dataset.del);return}const rb=e.target.closest('[data-rp]');if(rb){const m=(chatCache[chatRoom]||[]).find(x=>x.id===+rb.dataset.rp);if(m){setReply(m);$('#chIn').focus()}return}
  const q=e.target.closest('[data-go]');if(q){const el=$('#chList').querySelector('.msg[data-id="'+q.dataset.go+'"]');if(el){el.scrollIntoView({block:'center'});el.classList.add('hl');setTimeout(()=>el.classList.remove('hl'),1500)}}});
 async function loadRoom(r){if(!chatLoaded[r]){try{const j=await api('/msgs?room='+encodeURIComponent(r));const have=chatCache[r]||[];chatCache[r]=j.msgs.concat(have.filter(x=>!j.msgs.some(y=>y.id===x.id)));chatLoaded[r]=true}catch(e){chatCache[r]=chatCache[r]||[]}}renderChat()}
 function renderChat(){const L=$('#chList');const arr=chatCache[chatRoom]||[];
- L.innerHTML=arr.length?arr.map(x=>{const mine=ME&&x.uid===ME.id;const q=x.reply?(x.reply.gone?'<span class="quote">Tin gốc đã bị xoá</span>':`<span class="quote" data-go="${x.reply.id}"><b>${esc(x.reply.name)}</b>: ${esc(x.reply.text)}</span>`):'';return `<div class="msg${mine?' me':''}" data-id="${x.id}"><b>${mine?'Bạn':esc(x.name)}</b><span class="small">${esc(subOf(x))} · ${new Date(x.ts).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'numeric'})}</span> <button type="button" class="rp" data-rp="${x.id}">↩ Trả lời</button>${q}<p>${esc(x.text)}</p></div>`}).join(''):'<p class="small" style="padding:12px 0">Chưa có tin nhắn nào. Bạn chào mọi người trước nhé.</p>';
+ L.innerHTML=arr.length?arr.map(x=>{const mine=ME&&x.uid===ME.id;const q=x.reply?(x.reply.gone?'<span class="quote">Tin gốc đã bị xoá</span>':`<span class="quote" data-go="${x.reply.id}"><b>${esc(x.reply.name)}</b>: ${esc(x.reply.text)}</span>`):'';return `<div class="msg${mine?' me':''}" data-id="${x.id}"><b>${mine?'Bạn':esc(x.name)}</b><span class="small">${esc(subOf(x))} · ${new Date(x.ts).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'numeric'})}</span> <button type="button" class="rp" data-rp="${x.id}">↩ Trả lời</button>${ADM.on?`<button type="button" class="rp" data-del="${x.id}">🗑 Xoá</button>`:''}${q}<p>${esc(x.text)}</p></div>`}).join(''):'<p class="small" style="padding:12px 0">Chưa có tin nhắn nào. Bạn chào mọi người trước nhé.</p>';
  L.scrollTop=L.scrollHeight}
 function gotChat(m){(chatCache[m.room]=chatCache[m.room]||[]);if(!chatCache[m.room].some(x=>x.id===m.id))chatCache[m.room].push(m);
  const o=peers.get(m.uid);if(o)bubbleOn(o.g,m.text,o);else if(ME&&m.uid===ME.id&&avatar.visible)bubbleOn(avatar,m.text);
@@ -4360,6 +4370,45 @@ function buildDem(){
  },110);
 }
 
+
+/* ===== chế độ Admin ngay trong trang 3D ===== */
+function buildAdmin(){
+ const chip=$('#bAdm');
+ const mm=mkModal('admM','<div class="head"><h2 class="hand">🛡️ Admin</h2><button class="chip" data-close>Đóng</button></div><div id="admIn"><p class="small">Nhập mật khẩu quản lý (cái sếp dùng ở trang /quan-ly) để bật chế độ Admin. Máy này sẽ nhớ, lần sau tự vào.</p><div style="display:flex;gap:6px;margin:8px 0"><input id="admPw" type="password" autocomplete="current-password" placeholder="Mật khẩu quản lý" style="flex:1;min-width:0;padding:8px"><button class="chip" id="admGo">Vào</button></div><p class="small" id="admMsg"></p></div><div id="admOn" hidden><p class="small">Bạn đang là <b>Admin</b>: có huy hiệu trên đầu. Trong khung Chat, mỗi tin có nút 🗑 Xoá.</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0"><button class="chip" id="admMuOff">⏹ Tắt nhạc đang phát</button><button class="chip" id="admOut">Thoát Admin</button></div><h3 class="hand" style="margin:10px 0 4px">Nhạc chờ duyệt</h3><div id="admQ" style="display:grid;gap:8px"></div></div>');
+ const call=async(b)=>{const r=await fetch('/api/admin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.assign({pass:ADM.pass},b))});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Lỗi mạng');return j};
+ const upd=n=>{chip.textContent='🛡️ Admin'+(ADM.on&&n?' · '+n+' nhạc chờ':'')};
+ const refresh=async()=>{if(!ADM.on)return;try{const j=await call({action:'list'});const q=Array.isArray(j.music)?j.music:[];upd(q.length);
+   mm.querySelector('#admQ').innerHTML=q.length?q.map(x=>`<div style="border:1px solid #d9c9a8;border-radius:10px;padding:8px"><a href="https://www.youtube.com/watch?v=${esc(x.vid)}" target="_blank" rel="noopener"><b>${esc(x.title||x.vid)}</b></a><div class="small">người gửi: ${esc(x.name||'?')}</div><div style="display:flex;gap:6px;margin-top:6px"><button class="chip" data-ok="${esc(x.vid)}">✅ Cho phát</button><button class="chip" data-no="${esc(x.vid)}">Bỏ</button></div></div>`).join(''):'<p class="small">Không có bài nào đang chờ.</p>'}catch(e){mm.querySelector('#admQ').innerHTML='<p class="small">'+esc(e.message||'Lỗi')+'</p>'}};
+ const show=()=>{mm.querySelector('#admIn').hidden=ADM.on;mm.querySelector('#admOn').hidden=!ADM.on;chip.hidden=false;if(ADM.on)refresh()};
+ const setOn=on=>{ADM.on=on;if(on&&typeof buildAvatar==='function')buildAvatar();if(!on)upd(0);show();if(!$('#chat').hidden)renderChat()};
+ window.__admRes=ok=>{if(ok){try{localStorage.setItem('nbk-adm',ADM.pass)}catch(e){}setOn(true);mm.querySelector('#admMsg').textContent='';if(!mm.hidden)toast('Đã bật Admin')}else{if(ADM.on||ADM.pass){ADM.pass='';try{localStorage.removeItem('nbk-adm')}catch(e){}ADM.on=false}if(mm.querySelector('#admPw').value)mm.querySelector('#admMsg').textContent='Sai mật khẩu.';show()}};
+ window.__admDel=async id=>{if(!confirm('Xoá tin nhắn này?'))return;try{await call({action:'delMsg',id});toast('Đã xoá tin')}catch(e){toast(e.message||'Lỗi')}};
+ mm.querySelector('#admGo').onclick=()=>{const v=mm.querySelector('#admPw').value;if(!v)return;ADM.pass=v;mm.querySelector('#admMsg').textContent='Đang kiểm tra…';
+  if(live&&live.readyState===1){live.send(JSON.stringify({t:'adm',pass:v}))}else{call({action:'login'}).then(()=>{try{localStorage.setItem('nbk-adm',v)}catch(e){}setOn(true);mm.querySelector('#admMsg').textContent='';liveStart()}).catch(e=>{ADM.pass='';mm.querySelector('#admMsg').textContent=e.message||'Sai mật khẩu.'})}};
+ mm.querySelector('#admOut').onclick=()=>{ADM.pass='';try{localStorage.removeItem('nbk-adm')}catch(e){}if(live&&live.readyState===1)live.send(JSON.stringify({t:'adm',pass:''}));setOn(false);toast('Đã thoát Admin')};
+ mm.querySelector('#admMuOff').onclick=async()=>{try{await call({action:'musicSet',vid:''});toast('Đã tắt nhạc')}catch(e){toast(e.message||'Lỗi')}};
+ mm.querySelector('#admQ').addEventListener('click',async e=>{const ok=e.target.closest('[data-ok]'),no=e.target.closest('[data-no]');if(!ok&&!no)return;
+  try{await call({action:ok?'musicOk':'musicNo',id:(ok||no).dataset[ok?'ok':'no']});toast(ok?'Đã cho phát':'Đã bỏ bài');refresh()}catch(er){toast(er.message||'Lỗi');refresh()}});
+ chip.onclick=()=>{mm.hidden=false;show()};
+ const want=ADM.pass||/#admin/i.test(location.hash);
+ srvReady.then(ok=>{if(!ok)return;if(want)chip.hidden=false;if(ADM.pass){ADM.on=true;show()}});
+ setInterval(()=>{if(ADM.on)refresh()},60000);
+}
+try{buildAdmin()}catch(e){console.error(e)}
+
+/* ===== chọn điệu nhảy ở sân khấu và lửa trại ===== */
+function buildNhay(){
+ const D=[['💃','Nhún nhảy giơ tay','như đang dự văn nghệ'],['🕺','Lắc hông','đưa tay qua lại theo nhạc'],['👏','Dậm chân vỗ tay','kiểu quanh đống lửa'],['🌀','Xoay vòng','xoay tròn giơ hai tay']];
+ const mm=mkModal('danceM','<div class="head"><h2 class="hand">Chọn điệu nhảy</h2><button class="chip" data-close>Đóng</button></div><p class="small">Bấm một điệu, nhân vật nhảy khoảng 15 giây (đi bộ là dừng). Bạn bè gần đó cũng nhìn thấy. Phải ở chế độ "Tự đi dạo" mới thấy nhân vật của mình.</p><div id="danceL" style="display:grid;gap:8px"></div>');
+ mm.querySelector('#danceL').innerHTML=D.map((d,i)=>`<button class="chip" data-d="${i}" style="text-align:left;padding:10px"><span style="font-size:20px">${d[0]}</span> <b>${d[1]}</b> <span class="small">· ${d[2]}</span></button>`).join('');
+ mm.querySelector('#danceL').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(!b)return;const i=+b.dataset.d;
+  gesture(avParts,'dance'+i);if(live&&live.readyState===1)try{live.send(JSON.stringify({t:'dance',d:i}))}catch(er){}
+  toast(mode!=='walk'?'Chuyển sang "Tự đi dạo" để nhìn thấy mình nhảy 💃':D[i][1]+'! 🎶');mm.hidden=true});
+ const open=()=>{mm.hidden=false};
+ acts.push({x:K_X,z:-30,r:7,l:'💃 Chọn điệu nhảy (sân khấu)',f:open});
+ acts.push({x:-6.5,z:-23.5,r:7,l:'💃 Chọn điệu nhảy (lửa trại)',f:open});
+}
+try{buildNhay()}catch(e){console.error(e)}
 const fontsReady=Promise.race([Promise.all(['48px "Patrick Hand"','600 48px "Be Vietnam Pro"','700 48px "Dancing Script"'].map(f=>document.fonts?document.fonts.load(f):0)),new Promise(r=>setTimeout(r,3000))]).catch(()=>0);
 fontsReady.then(()=>{
  try{build()}catch(e){console.error(e)}

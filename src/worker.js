@@ -193,7 +193,7 @@ export class School extends DurableObject {
     }
     return out;
   }
-  peerInfo(ws) { const a = ws.deserializeAttachment(); return a && a.u ? Object.assign({}, a.u, { p: a.p || null }) : null; }
+  peerInfo(ws) { const a = ws.deserializeAttachment(); return a && a.u ? Object.assign({}, a.u, { p: a.p || null, adm: a.adm ? 1 : 0 }) : null; }
   refreshPeer(u) {
     // cập nhật thông tin người này trên mọi kết nối đang mở của họ và báo cho mọi người
     const pu = this.pub(u);
@@ -556,6 +556,17 @@ export class School extends DurableObject {
   webSocketMessage(ws, raw) {
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
     const a = ws.deserializeAttachment(); if (!a || !a.u) return;
+    if (m.t === 'adm') {
+      // người lập trang đăng nhập ngay trong trang 3D: kiểm mật khẩu quản lý, đúng thì gắn huy hiệu Admin
+      if (!this.limit('admws', 20, 60000)) { try { ws.send('{"t":"admno"}'); } catch (e) { } return; }
+      this.isAdmin(m.pass).then(ok => {
+        const b = ws.deserializeAttachment(); if (!b || !b.u) return;
+        b.adm = ok ? 1 : 0; ws.serializeAttachment(b);
+        try { ws.send(JSON.stringify({ t: ok ? 'admok' : 'admno' })); } catch (e) { }
+        this.broadcast({ t: 'adm', id: b.u.id, on: b.adm });
+      }).catch(() => { });
+      return;
+    }
     if (m.t === 'pos') {
       const n = v => (typeof v === 'number' && isFinite(v)) ? Math.max(-5000, Math.min(5000, v)) : 0;
       a.p = { x: n(m.x), z: n(m.z), y: n(m.yaw), m: m.m ? 1 : 0, r: m.r ? 1 : 0, h: m.h ? 1 : 0, k: Number.isInteger(m.k) && m.k >= -1 && m.k < 500 ? m.k : -1, f: Math.max(0, Math.min(30, n(m.f))), u: m.u ? 1 : 0, a: m.a ? 1 : 0 };
@@ -563,9 +574,9 @@ export class School extends DurableObject {
       this.broadcast({ t: 'pos', id: a.u.id, p: a.p }, ws);
       return;
     }
-    if (m.t === 'wave' || m.t === 'pose') {
+    if (m.t === 'wave' || m.t === 'pose' || m.t === 'dance') {
       const now = Date.now(); if (a.w && now - a.w < 1500) return; a.w = now; ws.serializeAttachment(a);
-      this.broadcast({ t: m.t, id: a.u.id }, ws);
+      this.broadcast({ t: m.t, id: a.u.id, d: m.t === 'dance' ? Math.max(0, Math.min(3, Number(m.d) | 0)) : undefined }, ws);
       return;
     }
     if (m.t === 'chat') {
