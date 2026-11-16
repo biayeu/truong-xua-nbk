@@ -4264,13 +4264,38 @@ function buildHau(){
  nameTagG&&nameTagG('Đường sau trường','phía sau là ruộng · đoán',GX+10,4.5,WZ-8,.9);
  flatG(220,60,GX+30,WZ-48,grass,.02);
  for(let i=0;i<16;i++){const x=GX+14+i*7.6,z=WZ-14-((i*5)%4);const t=new THREE.Group();t.position.set(x,0,z);scene.add(t);box(.3,2.4,.3,M(0x5d4630),0,1.2,0,t);const c=new THREE.Mesh(new THREE.SphereGeometry(1.6+(i%3)*.3,10,8),M(i%2?0x3f7d3a:0x4d8f43));c.position.y=3.4;c.castShadow=true;t.add(c)}
+ // hàng quán ngay lối cổng sau (MINH HOẠ theo lời sếp 16/11): xe bánh mì bên phải, quầy đồ ngọt bên trái
+ {const chrome=M(0xd8d8d8,{metalness:.7,roughness:.3});
+  // xe bánh mì
+  const g=new THREE.Group();g.position.set(82,0,-114.6);g.rotation.y=Math.PI;scene.add(g);const blue=M(0x2f6db5);
+  box(1.7,.75,.75,blue,0,.62,0,g);[-.6,.6].forEach(x=>{const w=new THREE.Mesh(new THREE.TorusGeometry(.2,.05,6,14),M(0x222222));w.position.set(x,.22,.38);g.add(w);const w2=w.clone();w2.position.z=-.38;g.add(w2)});
+  const glass=new THREE.Mesh(new THREE.BoxGeometry(1.5,.6,.62),new THREE.MeshStandardMaterial({color:0xddeeff,transparent:true,opacity:.28,roughness:.05}));glass.position.y=1.3;g.add(glass);
+  box(1.54,.04,.66,chrome,0,1.61,0,g,false);box(1.54,.04,.66,chrome,0,1,0,g,false);
+  const loaf=M(0xd99a4a);for(let i=0;i<9;i++){const l=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.36,8),loaf);l.rotation.z=Math.PI/2;l.position.set(-.5+(i%3)*.5,1.08+(i/3|0)*.13,-.15+((i/3|0)%2)*.2);g.add(l)}
+  const sg=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.42),new THREE.MeshStandardMaterial({map:signTex('BÁNH MÌ','#ffd23f','#c0392b'),side:THREE.DoubleSide}));sg.position.set(0,1.95,0);g.add(sg);
+  const um=new THREE.Mesh(new THREE.ConeGeometry(1.6,.6,12,1,true),M(0xd33a2c,{side:THREE.DoubleSide}));um.position.y=2.75;g.add(um);box(.05,2.5,.05,chrome,.85,1.25,-.4,g,false);
+  npc(82,-115.5,0,0x9fb7d6,0x3b3b3b,false);solid2.push([81.1,82.9,-115.1,-113.9]);
+  // quầy đồ ngọt: bàn dài, bánh rán, bánh bao, kẹo lạc, chè, nước ngọt, dù sọc
+  const t=new THREE.Group();t.position.set(70.2,0,-114.6);scene.add(t);
+  box(2.2,.06,.8,M(0x8a5a35),0,.85,0,t);[[-1,-.32],[1,-.32],[-1,.32],[1,.32]].forEach(([x,z])=>box(.05,.85,.05,M(0x6e4528),x,.42,z,t,false));
+  box(2.3,.3,.9,M(0xf2eee4),0,.55,0,t,false);
+  [[-.8,0xd99a3e],[-.4,0xc98a2e],[0,0xe0a84e]].forEach(([x,c])=>{const pl=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,.04,14),M(0xffffff));pl.position.set(x,.91,-.1);t.add(pl);for(let i=0;i<5;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.07,8,6),M(c));b.position.set(x+(i%3-1)*.09,.98+(i/3|0)*.08,-.1+(i%2)*.06);t.add(b)}});
+  for(let i=0;i<4;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.1,10,8),M(0xfaf3e6));b.scale.y=.8;b.position.set(.5+i*.13,.98,-.1);t.add(b)}
+  [[.55,0xf4c2c2],[.7,0xc8e6c9],[.85,0xffe0a0]].forEach(([x,c])=>{const j=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.16,10),new THREE.MeshStandardMaterial({color:c,transparent:true,opacity:.85}));j.position.set(x,.96,.2);t.add(j)});
+  for(let i=0;i<5;i++)box(.34,.04,.16,M(0xe2c27a),-.8+i*.2,.9,.2,t,false);
+  const ub=new THREE.Mesh(new THREE.ConeGeometry(2.0,.75,16,1,true),new THREE.MeshStandardMaterial({map:ctex(256,32,(c,w,h)=>{for(let i=0;i<16;i++){c.fillStyle=i%2?'#fff5f7':'#e91e63';c.fillRect(i*16,0,16,h)}}),side:THREE.DoubleSide}));ub.position.y=2.7;ub.castShadow=true;t.add(ub);box(.05,2.5,.05,chrome,0,1.25,-.5,t,false);
+  const sg2=new THREE.Mesh(new THREE.PlaneGeometry(1.7,.4),new THREE.MeshStandardMaterial({map:signTex('BÁNH NGỌT · CHÈ','#fffaf0','#e91e63',512,120,52),side:THREE.DoubleSide}));sg2.position.set(0,1.75,-.55);sg2.rotation.y=Math.PI;t.add(sg2);
+  npc(70.2,-115.7,0,0xb34a6a,0x2a2a2a,false);solid2.push([69,71.4,-115.3,-113.9]);
+  tagSprite('Bánh mì (minh hoạ)',82,3.4,-114.6,.5);tagSprite('Bánh ngọt, chè (minh hoạ)',70.2,3.5,-114.6,.5);
+  acts.push({x:82,z:-113.2,r:2.4,l:'Mua bánh mì',f:()=>toast('Ổ bánh mì pa-tê chả, cô chủ quét thêm tí tương ớt, ăn nóng giòn. (minh hoạ) / Banh mi pate nong gion.')},
+   {x:70.2,z:-113.2,r:2.4,l:'Mua bánh ngọt',f:()=>toast('Mua mấy cái bánh rán, bánh bao, ly chè đậu xanh sau giờ học. (minh hoạ) / Banh ran, banh bao, che dau xanh.')})}
  // cuối đoạn đã dựng: biển + bụi cây chặn
  {const ex=GX+60;box(.3,1.6,10,M(0x4f7a3a),ex,.8,WZ-8);tagSprite('Đoạn sau chưa dựng',ex-1,2.6,WZ-8,.55)}
  // phần đi được
  zones.push([GX-10,GX+60,WZ-14,WZ+1.2]);
  // tường rào đặc: chặn đi xuyên tường ở hai bên cổng ngoài vùng cổng
  solid2.push([GX-10,GX-4.5,WZ-.2,WZ+.2],[GX+4.5,GX+60,WZ-.2,WZ+.2],[GX+59.5,GX+60.5,WZ-14,WZ]);
- GOTO.push(['Cổng sau trường',GX,WZ+4,0],['Nhà xe sau',79.5,-84,Math.PI],['Đường sau trường',GX+2,WZ-7,-Math.PI/2]);try{const e=$('#goList');if(e)e.innerHTML=GOTO.map((q,i)=>`<button type="button" data-i="${i}">${q[0]}</button>`).join('')}catch(_){}
+ GOTO.push(['Quán bánh mì, bánh ngọt cổng sau',76,WZ-3,Math.PI],['Cổng sau trường',GX,WZ+4,0],['Nhà xe sau',79.5,-84,Math.PI],['Đường sau trường',GX+2,WZ-7,-Math.PI/2]);try{const e=$('#goList');if(e)e.innerHTML=GOTO.map((q,i)=>`<button type="button" data-i="${i}">${q[0]}</button>`).join('')}catch(_){}
 }
 
 const fontsReady=Promise.race([Promise.all(['48px "Patrick Hand"','600 48px "Be Vietnam Pro"','700 48px "Dancing Script"'].map(f=>document.fonts?document.fonts.load(f):0)),new Promise(r=>setTimeout(r,3000))]).catch(()=>0);
