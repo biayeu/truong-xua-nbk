@@ -919,6 +919,7 @@ const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
 function tap(x,y){
  ndc.set(x/innerWidth*2-1,-(y/innerHeight)*2+1);ray.setFromCamera(ndc,cam);
  if(typeof ADM!=='undefined'&&ADM.on&&window.__admProfile){let best=null,bd=1e9;peers.forEach(o=>{if(!o.g||!o.info||!o.info.id)return;const h=ray.intersectObject(o.g,true);if(h.length&&h[0].distance<bd){bd=h[0].distance;best=o.info.id}});if(best){window.__admProfile(best);return}}
+ if(!(typeof ADM!=='undefined'&&ADM.on)&&typeof KEY!=='undefined'&&KEY&&typeof openDm==='function'){let best=null,bd=1e9;peers.forEach(o=>{if(!o.g||!o.info||!o.info.id)return;const h=ray.intersectObject(o.g,true);if(h.length&&h[0].distance<bd){bd=h[0].distance;best=o}});if(best&&bd<7){const first=ray.intersectObjects(targets.concat(noteMeshes),true);if(!first.length||first[0].distance>bd){openDm(best.info.id,best.info);return}}}
  const hits=ray.intersectObjects(targets.concat(noteMeshes),true);if(!hits.length)return;
  let o=hits[0].object;while(o&&!o.userData.act)o=o.parent;if(!o)return;
  const a=o.userData.act;
@@ -1070,6 +1071,7 @@ const T_GIO=()=>txc('gi',128,192,(g,w,h)=>{g.fillStyle='#2a62b8';g.fillRect(0,0,
 const MT=t=>new THREE.MeshStandardMaterial({map:t,roughness:.9});
 const six=(side,top,front,back)=>[side,side,top,top,front,back];
 function outfit(P,seed){const se=effSeason(P.season),u=uniFor(P.khoa),nu=P.sex==='nu',W=M(0xf7f7f2),NV=M(0x1c2846);
+ if(P.costume){const c=P.costume;return{top:M(c.top),sleeve:M(c.sleeve!=null?c.sleeve:c.top),bottom:M(c.bottom),shoes:'thethao'}}
  if(P.role==='gv'){if(se==='td')return{top:M(0x2f6fb0),sleeve:M(0x2f6fb0),bottom:M(0x222222),collar:M(0xffffff),shoes:'thethao'};
   if(se==='dong')return nu?{top:M(0xe9dcc0),sleeve:M(0xe9dcc0),bottom:M(0x2a2a2a),dress:M(0x9e2f43)}:{top:M(0x4a4f57),sleeve:M(0x4a4f57),bottom:M(0x3b3b3b),collar:M(0xf2f2f2)};
   return nu?{top:M(0x9e2f43),sleeve:M(0x9e2f43),bottom:M(0x2a2a2a),dress:M(0x9e2f43)}:{top:M(0xbcd4ea),sleeve:M(0xbcd4ea),bottom:M(0x3b3b3b),collar:M(0xbcd4ea)}}
@@ -1553,7 +1555,7 @@ function bubbleOn(grp,text,obj){const t=text.length>60?text.slice(0,58)+'…':te
 /* --- kết nối trực tiếp --- */
 function liveStart(){if(!KEY||(live&&live.readyState<2))return;clearTimeout(liveTimer);
  try{live=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/api/live?key='+encodeURIComponent(KEY))}catch(e){return}
- live.onopen=()=>{liveTry=0;lastSent=null;if(ADM.pass)try{live.send(JSON.stringify({t:'adm',pass:ADM.pass}))}catch(e){}};
+ live.onopen=()=>{liveTry=0;lastSent=null;setTimeout(()=>{try{dmRefresh()}catch(e){}},900);if(ADM.pass)try{live.send(JSON.stringify({t:'adm',pass:ADM.pass}))}catch(e){}};
  live.onmessage=ev=>{let m;try{m=JSON.parse(ev.data)}catch(e){return}
   if(window.__d6&&window.__d6(m)===true)return;
   if(m.t==='hello'&&m.votes){UVOTES=m.votes}
@@ -1573,7 +1575,7 @@ function liveStart(){if(!KEY||(live&&live.readyState<2))return;clearTimeout(live
   else if(m.t==='pos'){const o=peers.get(m.id);if(o)o.tgt=m.p}
   else if(m.t==='note'){if(!srvNotes.some(n=>n.id===m.note.id)){srvNotes.unshift(toNote(m.note));refreshNotes()}}
   else if(m.t==='delnote'){srvNotes=srvNotes.filter(n=>n.id!==m.id);refreshNotes()}
-  else if(m.t==='chat')gotChat(m.msg);
+  else if(m.t==='chat')gotChat(m.msg);else if(m.t==='dm')gotDm(m);
   else if(m.t==='delmsg'){Object.keys(chatCache).forEach(r=>chatCache[r]=chatCache[r].filter(x=>x.id!==m.id));renderChat()}
   else if(m.t==='banned'){if(ME&&m.id===ME.id)toast('Tên của bạn đã bị người lập trang chặn.');srvNotes=srvNotes.filter(n=>n.uid!==m.id);refreshNotes();delPeer(m.id)}
   else if(m.t==='camps'||m.t==='music'){if(window.__campsMsg)window.__campsMsg(m)}
@@ -1585,10 +1587,10 @@ setInterval(()=>{if(live&&live.readyState===1)try{live.send('{"t":"ping"}')}catc
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&KEY&&(!live||live.readyState>1))liveStart()});
 
 /* --- trò chuyện --- */
-const chatCache={},chatLoaded={};let chatRoom='truong',unread=0;
-function rooms(){const r=[['truong','Toàn trường']];if(ME&&ME.khoa)r.push([ME.khoa,'Khóa '+ME.khoa]);(window.__shopTabs||[]).forEach(t=>r.push(t));return r}
-function updOn(){const n=peers.size+(live&&live.readyState===1?1:0);const b=$('#bOn');b.textContent='💬 Chat · online '+n+(unread?' · '+unread+' tin mới':'');b.classList.toggle('dot',n>1||unread>0)}
-function renderOnl(){const me=ME?[`<span>${esc(ME.name)} (bạn)</span>`]:[];const list=me.concat([...peers.values()].map(o=>`<span>${esc(o.info.name)}${o.info.khoa?' · K'+esc(o.info.khoa.slice(0,4)):''}</span>`));$('#onl').innerHTML=list.join('');$('#onlN').textContent='Đang online: '+list.length+' người'}
+const chatCache={},chatLoaded={};let chatRoom='truong',unread=0,dmUnread=0,dmList=[];const dmPeers={};
+function rooms(){const r=[['truong','Toàn trường']];if(ME&&ME.khoa)r.push([ME.khoa,'Khóa '+ME.khoa]);(window.__shopTabs||[]).forEach(t=>r.push(t));r.push(['@dm','✉ Tin riêng'+(dmUnread?' ('+dmUnread+')':'')]);if(chatRoom.startsWith('dm:')){const pe=dmPeers[chatRoom.slice(3)];r.push([chatRoom,'✉ '+(pe?(pe.nick||pe.name):'...')])}return r}
+function updOn(){const n=peers.size+(live&&live.readyState===1?1:0);const b=$('#bOn');const U=unread+dmUnread;b.textContent='💬 Chat · online '+n+(U?' · '+U+' tin mới':'');b.classList.toggle('dot',n>1||U>0)}
+function renderOnl(){const me=ME?[`<span>${esc(ME.name)} (bạn)</span>`]:[];const list=me.concat([...peers.values()].map(o=>`<span data-dm="${esc(o.info.id)}" style="cursor:pointer" title="Bấm để nhắn riêng">✉ ${esc(o.info.name)}${o.info.khoa?' · K'+esc(o.info.khoa.slice(0,4)):''}</span>`));$('#onl').innerHTML=list.join('');$('#onlN').textContent='Đang online: '+list.length+' người'}
 function renderTabs(){$('#chTabs').innerHTML=rooms().map(([k,t])=>`<button data-r="${esc(k)}" class="${k===chatRoom?'on':''}">${esc(t)}</button>`).join('')}
 $('#chTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;chatRoom=b.dataset.r;setReply(null);renderTabs();loadRoom(chatRoom)});
 let chReply=null;
@@ -1596,9 +1598,9 @@ function setReply(m){chReply=m?{id:m.id,name:m.name,text:m.text}:null;const r=$(
 $('#chRepX').onclick=()=>{setReply(null);$('#chIn').focus()};
 $('#chList').addEventListener('click',e=>{const pf=e.target.closest('[data-prof]');if(pf&&ADM.on&&window.__admProfile){window.__admProfile(pf.dataset.prof);return}const db=e.target.closest('[data-del]');if(db&&ADM.on){if(window.__admDel)window.__admDel(+db.dataset.del);return}const rb=e.target.closest('[data-rp]');if(rb){const m=(chatCache[chatRoom]||[]).find(x=>x.id===+rb.dataset.rp);if(m){setReply(m);$('#chIn').focus()}return}
  const q=e.target.closest('[data-go]');if(q){const el=$('#chList').querySelector('.msg[data-id="'+q.dataset.go+'"]');if(el){el.scrollIntoView({block:'center'});el.classList.add('hl');setTimeout(()=>el.classList.remove('hl'),1500)}}});
-async function loadRoom(r){if(!chatLoaded[r]){try{const j=await api('/msgs?room='+encodeURIComponent(r));const have=chatCache[r]||[];chatCache[r]=j.msgs.concat(have.filter(x=>!j.msgs.some(y=>y.id===x.id)));chatLoaded[r]=true}catch(e){chatCache[r]=chatCache[r]||[]}}renderChat()}
-function renderChat(){const L=$('#chList');const arr=chatCache[chatRoom]||[];
- L.innerHTML=arr.length?arr.map(x=>{const mine=ME&&x.uid===ME.id;const q=x.reply?(x.reply.gone?'<span class="quote">Tin gốc đã bị xoá</span>':`<span class="quote" data-go="${x.reply.id}"><b>${esc(x.reply.name)}</b>: ${esc(x.reply.text)}</span>`):'';return `<div class="msg${mine?' me':''}" data-id="${x.id}"><b${ADM.on&&!mine?` data-prof="${esc(x.uid)}" style="cursor:pointer;text-decoration:underline dotted" title="Bấm để xem hồ sơ"`:''}>${mine?'Bạn':esc(x.name)}</b><span class="small">${esc(subOf(x))} · ${new Date(x.ts).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'numeric'})}</span> <button type="button" class="rp" data-rp="${x.id}">↩ Trả lời</button>${ADM.on?`<button type="button" class="rp" data-del="${x.id}">🗑 Xoá</button>`:''}${q}<p>${esc(x.text)}</p></div>`}).join(''):'<p class="small" style="padding:12px 0">Chưa có tin nhắn nào. Bạn chào mọi người trước nhé.</p>';
+async function loadRoom(r){if(r==='@dm'){await dmRefresh();renderChat();return}if(r.startsWith('dm:')){await dmLoadThread(r);return}if(!chatLoaded[r]){try{const j=await api('/msgs?room='+encodeURIComponent(r));const have=chatCache[r]||[];chatCache[r]=j.msgs.concat(have.filter(x=>!j.msgs.some(y=>y.id===x.id)));chatLoaded[r]=true}catch(e){chatCache[r]=chatCache[r]||[]}}renderChat()}
+function renderChat(){const L=$('#chList');const arr=chatCache[chatRoom]||[];const isDm=chatRoom.startsWith('dm:');$('#chForm').hidden=chatRoom==='@dm';if(chatRoom==='@dm'){renderDmList();return}
+ L.innerHTML=arr.length?arr.map(x=>{const mine=ME&&x.uid===ME.id;const q=x.reply?(x.reply.gone?'<span class="quote">Tin gốc đã bị xoá</span>':`<span class="quote" data-go="${x.reply.id}"><b>${esc(x.reply.name)}</b>: ${esc(x.reply.text)}</span>`):'';return `<div class="msg${mine?' me':''}" data-id="${x.id}">${x.av?`<img class="mav" src="/api/avatar?id=${esc(x.uid)}&v=${x.av}" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px">`:''}<b${ADM.on&&!mine?` data-prof="${esc(x.uid)}" style="cursor:pointer;text-decoration:underline dotted" title="Bấm để xem hồ sơ"`:''}>${mine?'Bạn':esc(x.name)}</b><span class="small">${esc(subOf(x))} · ${new Date(x.ts).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'numeric'})}</span> ${isDm?'':`<button type="button" class="rp" data-rp="${x.id}">↩ Trả lời</button>`}${ADM.on&&!isDm?`<button type="button" class="rp" data-del="${x.id}">🗑 Xoá</button>`:''}${q}<p>${esc(x.text)}</p></div>`}).join(''):'<p class="small" style="padding:12px 0">Chưa có tin nhắn nào. Bạn chào mọi người trước nhé.</p>';
  L.scrollTop=L.scrollHeight}
 function gotChat(m){(chatCache[m.room]=chatCache[m.room]||[]);if(!chatCache[m.room].some(x=>x.id===m.id))chatCache[m.room].push(m);
  const o=peers.get(m.uid);if(o)bubbleOn(o.g,m.text,o);else if(ME&&m.uid===ME.id&&avatar.visible)bubbleOn(avatar,m.text);
@@ -1606,7 +1608,24 @@ function gotChat(m){(chatCache[m.room]=chatCache[m.room]||[]);if(!chatCache[m.ro
 function openChat(){if(!KEY){toast('Bạn bấm "Vào trường" và nhập tên trước nhé.');return}unread=0;updOn();renderOnl();renderTabs();$('#chat').hidden=false;loadRoom(chatRoom);setTimeout(()=>{if(!isTouch)$('#chIn').focus()},60)}
 $('#bOn').onclick=openChat;
 $('#chForm').addEventListener('submit',e=>{e.preventDefault();const t=$('#chIn').value.trim();if(!t)return;if(!live||live.readyState!==1){toast('Đang kết nối lại, bạn thử lại sau vài giây nhé.');liveStart();return}
- live.send(JSON.stringify({t:'chat',room:chatRoom,text:t.slice(0,300),reply:chReply?chReply.id:0}));$('#chIn').value='';setReply(null)});
+ if(chatRoom.startsWith('dm:'))live.send(JSON.stringify({t:'dm',to:chatRoom.slice(3),text:t.slice(0,300)}));else live.send(JSON.stringify({t:'chat',room:chatRoom,text:t.slice(0,300),reply:chReply?chReply.id:0}));$('#chIn').value='';setReply(null)});
+
+/* --- nhắn tin riêng (chỉ hai người thấy; sếp Admin cũng không đọc được) --- */
+const nmOf=p=>p?(p.nick||p.name||'?'):'?';
+async function dmRefresh(){if(!KEY||!SRV)return;try{const j=await api('/dm/list',{key:KEY});dmList=j.list||[];dmUnread=j.unread||0;dmList.forEach(p=>{dmPeers[p.id]=Object.assign(dmPeers[p.id]||{},p)});updOn();if(!$('#chat').hidden){renderTabs();if(chatRoom==='@dm')renderChat()}}catch(e){}}
+function renderDmList(){const L=$('#chList');
+ L.innerHTML='<p class="small" style="margin:2px 0 6px">Tin riêng chỉ hai bạn thấy. Muốn nhắn ai: bấm vào tên họ ở dòng "Đang online" phía trên, bấm ✉ trong Sổ lớp, hoặc bấm vào nhân vật của bạn ấy khi đi dạo.</p>'+(dmList.length?dmList.map(p=>`<div class="msg" data-dm="${esc(p.id)}" style="cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px dashed rgba(255,255,255,.25);padding:6px 0">${p.av?`<img src="/api/avatar?id=${esc(p.id)}&v=${p.av}" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover">`:'<span style="width:34px;height:34px;border-radius:50%;background:#556;display:inline-block"></span>'}<div style="flex:1;min-width:0"><b>${esc(nmOf(p))}</b> <span class="small">${esc(subOf(p))}</span><br><span class="small">${p.mine?'Bạn: ':''}${esc(p.last)}</span></div>${p.unread?`<b style="background:#d9534f;color:#fff;border-radius:10px;padding:1px 8px">${p.unread}</b>`:''}</div>`).join(''):'<p class="small" style="padding:12px 0">Chưa có cuộc trò chuyện riêng nào.</p>')}
+function openDm(id,info){if(!KEY){toast('Bạn bấm "Vào trường" và nhập tên trước nhé.');return}if(ME&&id===ME.id)return;if(info)dmPeers[id]=Object.assign(dmPeers[id]||{},info);chatRoom='dm:'+id;setReply(null);if($('#chat').hidden)openChat();else{renderTabs();loadRoom(chatRoom)}}
+async function dmLoadThread(r){const id=r.slice(3);try{const j=await api('/dm/thread',{key:KEY,with:id});dmPeers[id]=Object.assign(dmPeers[id]||{},j.peer);chatCache[r]=j.msgs;chatLoaded[r]=true;dmRefresh()}catch(e){toast(e.message||'Không mở được tin riêng.');chatRoom='@dm'}renderTabs();renderChat()}
+function gotDm(m){const x=m.msg,mine=ME&&x.uid===ME.id,other=mine?m.peerId:x.uid,key='dm:'+other;
+ if(!mine)dmPeers[other]=Object.assign(dmPeers[other]||{},{id:other,name:x.name,lop:x.lop,khoa:x.khoa,role:x.role,av:x.av});
+ (chatCache[key]=chatCache[key]||[]);if(!chatCache[key].some(y=>y.id===x.id))chatCache[key].push(x);
+ const open=!$('#chat').hidden&&chatRoom===key;
+ if(open){renderChat();if(!mine)api('/dm/read',{key:KEY,with:other}).catch(()=>{})}
+ else if(!mine){dmUnread++;updOn();toast('✉ '+x.name+': '+String(x.text).slice(0,40));if(!$('#chat').hidden)renderTabs()}
+ if(!open||mine)dmRefresh()}
+$('#onl').addEventListener('click',e=>{const b=e.target.closest('[data-dm]');if(b)openDm(b.dataset.dm,(peers.get(b.dataset.dm)||{}).info)});
+$('#chList').addEventListener('click',e=>{const b=e.target.closest('[data-dm]');if(b)openDm(b.dataset.dm)});
 
 /* --- sổ lớp --- */
 let soPeople=[];
@@ -1618,9 +1637,9 @@ async function openSo(){$('#solop').hidden=false;$('#soBody').innerHTML='<p clas
  $('#soSum').textContent=`Cả trường đã có ${soPeople.length} người ghi tên, thuộc ${new Set(soPeople.map(p=>p.khoa)).size} khóa.`;renderSo()}
 function renderSo(){const k=$('#soK').value,ps=soPeople.filter(p=>p.khoa===k);const by={};ps.forEach(p=>{const l=p.role==='gv'?'Thầy cô':(p.lop||'Chưa ghi lớp');(by[l]=by[l]||[]).push(p)});
  const ls=Object.keys(by).sort((a,b)=>a==='Thầy cô'?-1:b==='Thầy cô'?1:a.localeCompare(b,'vi',{numeric:true}));
- $('#soBody').innerHTML=ls.length?ls.map(l=>`<div class="cls"><h3>${l==='Thầy cô'||l==='Chưa ghi lớp'?esc(l):'Lớp '+esc(l)} <span class="small">(${by[l].length})</span></h3>${by[l].map(p=>`<button data-u="${esc(p.id)}" data-n="${esc(p.name)}">${p.av?`<img class="mav" src="/api/avatar?id=${esc(p.id)}&v=${p.av}" alt="">`:''}${esc(p.name)}${ME&&p.id===ME.id?' (bạn)':''}${p.nc?' · ✎'+p.nc:''}${[...peers.keys()].includes(p.id)||(ME&&p.id===ME.id)?' 🟢':''}</button>`).join('')}</div>`).join(''):'<p class="small">Khóa này chưa có ai ghi tên. Bạn rủ bạn bè vào nhé.</p>'}
+ $('#soBody').innerHTML=ls.length?ls.map(l=>`<div class="cls"><h3>${l==='Thầy cô'||l==='Chưa ghi lớp'?esc(l):'Lớp '+esc(l)} <span class="small">(${by[l].length})</span></h3>${by[l].map(p=>`<button data-u="${esc(p.id)}" data-n="${esc(p.name)}">${p.av?`<img class="mav" src="/api/avatar?id=${esc(p.id)}&v=${p.av}" alt="">`:''}${esc(p.name)}${ME&&p.id===ME.id?' (bạn)':''}${p.nc?' · ✎'+p.nc:''}${[...peers.keys()].includes(p.id)||(ME&&p.id===ME.id)?' 🟢':''}</button>${ME&&p.id===ME.id?'':`<button data-dm="${esc(p.id)}" data-n="${esc(p.name)}" title="Nhắn riêng" style="padding:0 8px">✉</button>`}`).join('')}</div>`).join(''):'<p class="small">Khóa này chưa có ai ghi tên. Bạn rủ bạn bè vào nhé.</p>'}
 $('#soK').onchange=renderSo;$('#bSo').onclick=openSo;
-$('#soBody').addEventListener('click',e=>{const b=e.target.closest('[data-u]');if(!b)return;if(ADM.on&&window.__admProfile){window.__admProfile(b.dataset.u);return}$('#solop').hidden=true;openNotesOf(b.dataset.u,b.dataset.n)});
+$('#soBody').addEventListener('click',e=>{const d=e.target.closest('[data-dm]');if(d){$('#solop').hidden=true;const p=soPeople.find(x=>x.id===d.dataset.dm);openDm(d.dataset.dm,p?{id:p.id,name:p.name,lop:p.lop,khoa:p.khoa,role:p.role,av:p.av}:null);return}const b=e.target.closest('[data-u]');if(!b)return;if(ADM.on&&window.__admProfile){window.__admProfile(b.dataset.u);return}$('#solop').hidden=true;openNotesOf(b.dataset.u,b.dataset.n)});
 
 /* ---------- ĐỢT 3a: nhiều lớp học, tự ghi lớp lên cửa, bàn có tên, tìm lớp, nhảy ---------- */
 // mỗi đoạn nhà: [x, z, xoay, từ x, đến x (theo trục dọc của dãy), số tầng, tên dãy]
@@ -4378,7 +4397,7 @@ function buildAdmin(){
  const chip=$('#bAdm');
  const mm=mkModal('admM','<div class="head"><h2 class="hand">🛡️ Admin</h2><button class="chip" data-close>Đóng</button></div><div id="admIn"><p class="small">Nhập mật khẩu quản lý (cái sếp dùng ở trang /quan-ly) để bật chế độ Admin. Máy này sẽ nhớ, lần sau tự vào.</p><div style="display:flex;gap:6px;margin:8px 0"><input id="admPw" type="password" autocomplete="current-password" placeholder="Mật khẩu quản lý" style="flex:1;min-width:0;padding:8px"><button class="chip" id="admGo">Vào</button></div><p class="small" id="admMsg"></p></div><div id="admOn" hidden><p class="small">Bạn đang là <b>Admin</b>: có huy hiệu trên đầu. Trong khung Chat, mỗi tin có nút 🗑 Xoá.</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0"><button class="chip" id="admMuOff">⏹ Tắt nhạc đang phát</button><button class="chip" id="admOut">Thoát Admin</button></div><h3 class="hand" style="margin:10px 0 4px">Nhạc chờ duyệt</h3><div id="admQ" style="display:grid;gap:8px"></div></div>');
  const call=async(b)=>{const r=await fetch('/api/admin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.assign({pass:ADM.pass},b))});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Lỗi mạng');return j};
- const upd=n=>{chip.textContent='🛡️ Admin'+(ADM.on&&n?' · '+n+' nhạc chờ':'')};
+ const upd=n=>{chip.textContent='🛡️ Admin'+(ADM.on&&n?' · '+n+' nhạc chờ':'')+(ADM.on&&window.__admPhotoN?' · '+window.__admPhotoN+' ảnh chờ':'')};
  const refresh=async()=>{if(!ADM.on)return;try{const j=await call({action:'list'});const q=Array.isArray(j.music)?j.music:[];upd(q.length);
    mm.querySelector('#admQ').innerHTML=q.length?q.map(x=>`<div style="border:1px solid #d9c9a8;border-radius:10px;padding:8px"><a href="https://www.youtube.com/watch?v=${esc(x.vid)}" target="_blank" rel="noopener"><b>${esc(x.title||x.vid)}</b></a><div class="small">người gửi: ${esc(x.name||'?')}</div><div style="display:flex;gap:6px;margin-top:6px"><button class="chip" data-ok="${esc(x.vid)}">✅ Cho phát</button><button class="chip" data-no="${esc(x.vid)}">Bỏ</button></div></div>`).join(''):'<p class="small">Không có bài nào đang chờ.</p>'}catch(e){mm.querySelector('#admQ').innerHTML='<p class="small">'+esc(e.message||'Lỗi')+'</p>'}};
  const show=()=>{mm.querySelector('#admIn').hidden=ADM.on;mm.querySelector('#admOn').hidden=!ADM.on;chip.hidden=false;if(ADM.on)refresh()};
@@ -4415,7 +4434,8 @@ function buildRank(){
   else h=L.map((r,i)=>{
    const left=(tab==='lops')?'<b>Lớp '+esc(r.lop)+'</b> <span class="small">· khóa '+esc(r.khoa||'?')+'</span>':(tab==='khoas')?'<b>Khóa '+esc(r.khoa)+'</b>':('<b>'+nm(r)+'</b> <span class="small">'+sub(r)+(r.online?' · 🟢 đang online':'')+'</span>');
    const val=tab==='time'?fmt(r.c):r.c+' '+unit;
-   return '<div'+(r.id&&ADM.on?' data-prof="'+esc(r.id)+'" style="cursor:pointer;display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px dashed #d9c9a8" title="Bấm để xem hồ sơ"':' style="display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px dashed #d9c9a8"')+'><span style="font-size:18px">'+medal(i)+'</span><div style="flex:1;min-width:0">'+left+'</div><b>'+esc(val)+'</b></div>'}).join('');
+   const av=r.av?'<img src="/api/avatar?id='+encodeURIComponent(r.id)+'&v='+r.av+'" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover">':(r.id?'<span style="width:30px;height:30px;border-radius:50%;background:#556;display:inline-block;flex:none"></span>':'');
+   return '<div'+(r.id&&ADM.on?' data-prof="'+esc(r.id)+'" style="cursor:pointer;display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px dashed #d9c9a8" title="Bấm để xem hồ sơ"':' style="display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px dashed #d9c9a8"')+'><span style="font-size:18px">'+medal(i)+'</span>'+av+'<div style="flex:1;min-width:0">'+left+'</div><b>'+esc(val)+'</b></div>'}).join('');
   B.innerHTML=h;
   mm.querySelector('#rkNote').textContent=(ADM.on?'Admin: bấm vào một người để xem hồ sơ. ':'')+(tab==='time'||tab==='visits'?'Đếm từ khi có bảng xếp hạng này ('+(D.tracked||0)+' bạn đã được đếm). Chỉ tính khi đang mở trang và có kết nối.':(tab==='mem'?'Điểm = 1 nếu đã ký sổ vàng + số ảnh đã được duyệt.':'Tổng '+(D.total||0)+' bạn đã vào trường.'));
  };
@@ -4458,12 +4478,81 @@ function buildAdmProfile(){
  const on=am.querySelector('#admOn');if(!on)return;
  const w=document.createElement('div');w.innerHTML='<h3 class="hand" style="margin:10px 0 4px">Xem hồ sơ người dùng</h3><div style="display:flex;gap:6px"><input id="admFind" placeholder="Gõ tên hoặc lớp…" style="flex:1;min-width:0;padding:8px"><button class="chip" id="admFindGo">Tìm</button></div><div id="admFindL" style="display:grid;gap:4px;margin-top:6px;max-height:30vh;overflow:auto"></div><p class="small">Mẹo: đang đi dạo, bấm vào nhân vật của bạn bè cũng mở được hồ sơ.</p>';
  on.appendChild(w);
+ /* ảnh chờ duyệt ngay trong bảng Admin */
+ const pw=document.createElement('div');pw.innerHTML='<h3 class="hand" style="margin:10px 0 4px">Ảnh chờ duyệt <span id="admPhN" class="small"></span></h3><div id="admPh" style="display:grid;gap:8px"></div>';on.insertBefore(pw,on.firstElementChild.nextSibling);
+ const loadPh=async()=>{if(!ADM.on)return;try{const j=await call({action:'list'});const L=(j.photos||[]).filter(x=>!x.ok);window.__admPhotoN=L.length;const chip=document.getElementById('bAdm');if(chip)chip.textContent='🛡️ Admin'+(L.length?' · '+L.length+' ảnh chờ':'');
+   pw.querySelector('#admPhN').textContent=L.length?'('+L.length+')':'';
+   pw.querySelector('#admPh').innerHTML=L.length?L.map(x=>`<div style="border:1px solid #d9c9a8;border-radius:10px;padding:8px;display:flex;gap:8px"><a href="/api/photo?id=${x.id}&pass=${encodeURIComponent(ADM.pass)}" target="_blank"><img src="/api/photo?id=${x.id}&pass=${encodeURIComponent(ADM.pass)}" alt="" style="width:120px;height:90px;object-fit:cover;border-radius:6px"></a><div style="flex:1;min-width:0"><b>${esc(x.name||'')}</b><div class="small">${x.kind==='chung'?'Ảnh chụp chung':'Ảnh lớp'}${x.lop?' · Lớp '+esc(x.lop):''}${x.khoa?' · '+esc(x.khoa):''}${x.cap?'<br>'+esc(x.cap):''}</div><div style="display:flex;gap:6px;margin-top:6px"><button class="chip" data-pok="${x.id}">Cho hiện</button><button class="chip" data-pno="${x.id}" style="color:#c33">Xoá</button></div></div></div>`).join(''):'<p class="small">Chưa có ảnh nào chờ duyệt.</p>'}catch(e){}};
+ pw.addEventListener('click',async e=>{const ok=e.target.closest('[data-pok]'),no=e.target.closest('[data-pno]');if(!ok&&!no)return;try{await call({action:ok?'photoOk':'photoDel',id:(ok||no).dataset[ok?'pok':'pno']});toast(ok?'Đã cho hiện ảnh':'Đã xoá ảnh');loadPh()}catch(er){toast(er.message||'Lỗi')}});
+ document.getElementById('bAdm').addEventListener('click',()=>setTimeout(loadPh,50));setInterval(loadPh,30000);setTimeout(loadPh,4000);
  const go=async()=>{try{const j=await call({action:'list',q:w.querySelector('#admFind').value.trim()});const us=(j.users||[]).slice(0,40);
   w.querySelector('#admFindL').innerHTML=us.map(u=>`<button class="chip" data-id="${esc(u.id)}" style="text-align:left">${esc(u.name)} <span class="small">${esc(u.role==='gv'?'Thầy/Cô':[u.lop,u.khoa].filter(Boolean).join(' · '))}${u.banned?' · đã chặn':''}</span></button>`).join('')||'<p class="small">Không thấy ai.</p>'}catch(e){toast(e.message||'Lỗi')}};
  w.querySelector('#admFindGo').onclick=go;w.querySelector('#admFind').onkeydown=e=>{if(e.key==='Enter')go()};
  w.querySelector('#admFindL').onclick=e=>{const b=e.target.closest('[data-id]');if(b)open(b.dataset.id)};
 }
 try{buildAdmProfile()}catch(e){console.error(e)}
+
+/* ===== DJ + 4 bạn nhảy trên sân khấu (buổi tối; thử bằng ?laser=1) ===== */
+function buildDJ(){
+ const FORCE=/[?&]laser=1/.test(location.search);
+ const night=()=>FORCE||(()=>{const h=hourNow();return h>=17.5||h<5})();
+ const SY=1.06,CX=K_X,G=new THREE.Group();G.visible=false;scene.add(G);
+ const box=(w,h,d,col,x,y,z,o={})=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),M(col,o));m.position.set(x,y,z);m.castShadow=true;G.add(m);return m};
+ const cyl=(r,h,col,x,y,z,o={},seg=24)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg),M(col,o));m.position.set(x,y,z);G.add(m);return m};
+ // ----- bàn DJ -----
+ const TZ=-34.0,TY=SY;
+ box(3.4,.95,.8,0x1b1b22,CX,TY+.475,TZ);
+ const led=box(3.3,.5,.02,0xffffff,CX,TY+.5,TZ+.41,{emissive:0xff2fa0,emissiveIntensity:1.6,roughness:.4});
+ box(3.5,.06,.9,0x2b2b33,CX,TY+.98,TZ);
+ const decks=[-1.05,1.05].map(dx=>{box(.95,.04,.7,0x3a3a44,CX+dx,TY+1.03,TZ);const d=cyl(.29,.03,0x0d0d10,CX+dx,TY+1.07,TZ,{metalness:.5,roughness:.3});cyl(.07,.035,0xe33a3a,CX+dx,TY+1.09,TZ);return d});
+ box(.8,.07,.6,0x222228,CX,TY+1.03,TZ); // bàn trộn
+ [-.25,-.08,.08,.25].forEach(x=>box(.04,.04,.1,0xcccccc,CX+x,TY+1.08,TZ-.05));
+ const lap=box(.6,.03,.4,0x9aa0a8,CX+1.45,TY+1.03,TZ+.02);
+ const scr=box(.6,.36,.02,0x111111,CX+1.45,TY+1.21,TZ-.15,{emissive:0x35c6ff,emissiveIntensity:.9});scr.rotation.x=-.25;
+ // ----- loa hai bên (nhún theo nhịp) -----
+ const cones=[];
+ [-1,1].forEach(sd=>{const x=CX+sd*6.4,z=-34.4;box(1.3,2.4,1.0,0x14141a,x,SY+1.2,z);
+  [[.55,.55],[1.7,.38]].forEach(([y,r])=>{const c=new THREE.Mesh(new THREE.CylinderGeometry(r*.85,r,.1,24),M(0x2a2a33,{roughness:.5}));c.rotation.x=Math.PI/2;c.position.set(x,SY+y+.2,z+.5);G.add(c);cones.push(c)})});
+ // ----- dây đèn nháy trước bàn + đèn màu -----
+ const bulbs=[];for(let i=0;i<9;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.07,8,6),M(0xffffff,{emissive:0xffffff,emissiveIntensity:1.2}));b.position.set(CX-3.6+i*.9,SY+2.9,-35.8);G.add(b);bulbs.push(b)}
+ const spot=new THREE.PointLight(0xff3fa8,0,16,1.5);spot.position.set(CX,SY+3,-31.6);G.add(spot);
+ // ----- nhân vật -----
+ const mk=(P,x,z,yaw)=>{const g=new THREE.Group();g.position.set(x,SY,z);g.rotation.y=yaw;G.add(g);const r=makeAv(Object.assign({role:'hs',season:'he',name:''},P),g);return{g,parts:r.parts}};
+ const dj=mk({id:'dj1',name:'DJ Phượng Vỹ',sex:'nam',look:{hair:'mai',acc:'kinh',shoes:'thethao'},costume:{top:0x111118,bottom:0x23233a}},CX,TZ-.95,0);
+ // tai nghe DJ
+ {const hp=new THREE.Group(),bm=M(0x1c1c20),gl=M(0xff2fa0,{emissive:0xff2fa0,emissiveIntensity:1});
+  const band=new THREE.Mesh(new THREE.TorusGeometry(.125,.012,6,18,Math.PI),bm);band.position.y=.03;hp.add(band);
+  [-1,1].forEach(sd=>{const c=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.03,14),bm);c.rotation.z=Math.PI/2;c.position.set(sd*.125,0,0);hp.add(c);const r=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.034,14),gl);r.rotation.z=Math.PI/2;r.position.set(sd*.135,0,0);hp.add(r)});
+  dj.parts.head.add(hp)}
+ const outf=[[0xff4fa3,0x20203a,'nu',{hair:'duoi'}],[0x35d6ff,0x1d2b45,'nam',{hair:'reungoi'}],[0xffd23f,0x2a2038,'nu',{hair:'bim'}],[0xa66bff,0x1d2b45,'nam',{hair:'mai'}]];
+ const dancers=outf.map((o,i)=>mk({id:'dc'+i,sex:o[2],look:Object.assign({shoes:'thethao'},o[3]),costume:{top:o[0],bottom:o[1]}},CX-5.4+i*3.6,-32.3,0));
+ const kind=i=>(Math.floor(Date.now()/9000)+(i>>1)*2+(i&1))%4;
+ const last=[-1,-1,-1,-1];
+ const hue=t=>new THREE.Color().setHSL((t*.12)%1,.9,.55);
+ anim.push((dt,t)=>{
+  const on=night()&&pos.y<40&&Math.hypot(pos.x-CX,pos.z+33)<130;G.visible=on;if(!on){spot.intensity=0;return}
+  const beat=Math.sin(t*13.4),bp=Math.max(0,Math.sin(t*6.7));
+  // DJ
+  const P=dj.parts;animAv(P,dt,{speed:0});
+  P.body.position.y=Math.abs(beat)*.03;P.head.rotation.x=.12+beat*.12;P.head.rotation.z=Math.sin(t*3.3)*.08;
+  const up=(t%14)>11.5;
+  if(up){P.armL.rotation.x=-2.7+Math.sin(t*13.4)*.15;P.armR.rotation.x=-2.7-Math.sin(t*13.4)*.15;P.armL.rotation.z=-.35;P.armR.rotation.z=.35;P.elbL.rotation.x=P.elbR.rotation.x=-.3}
+  else{P.armL.rotation.x=-1.0+Math.sin(t*2.1)*.12;P.armR.rotation.x=-1.0+Math.sin(t*9)*.22;P.armL.rotation.z=-.1;P.armR.rotation.z=.05;P.elbL.rotation.x=-.9;P.elbR.rotation.x=-.9+Math.sin(t*9)*.25}
+  decks[0].rotation.y+=dt*(3+Math.sin(t*9)*2);decks[1].rotation.y-=dt*3;
+  // đèn, loa
+  const c=hue(t);led.material.emissive.copy(c);led.material.emissiveIntensity=1.1+bp*1.2;
+  bulbs.forEach((b,i)=>{const cc=hue(t+i*.15);b.material.emissive.copy(cc);b.material.color.copy(cc);b.material.emissiveIntensity=Math.sin(t*6+i)>0?1.6:.3});
+  cones.forEach(m=>m.scale.set(1+bp*.09,1,1+bp*.09));
+  scr.material.emissiveIntensity=.6+Math.abs(Math.sin(t*2))*.5;
+  spot.color.copy(c);spot.intensity=1.4+bp*1.6;
+  // 4 bạn nhảy: đổi điệu theo đồng hồ chung (mọi máy thấy cùng điệu)
+  dancers.forEach((d,i)=>{const k=kind(i);if(k!==last[i]){last[i]=k;gesture(d.parts,'dance'+k)}else if(d.parts.gest&&d.parts.gest.end-performance.now()<2000)gesture(d.parts,'dance'+k);
+   animAv(d.parts,dt,{speed:0});applyGesture(d.parts,dt)});
+ });
+ // hướng bạn nhảy về phía khán giả (+z): nhân vật nhìn theo hướng z âm khi yaw 0? kiểm tra bằng ảnh
+ window.__dj={G,dj,dancers};
+}
+try{buildDJ()}catch(e){console.error(e)}
 
 /* ===== chọn điệu nhảy ở sân khấu và lửa trại ===== */
 function buildNhay(){

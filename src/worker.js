@@ -122,6 +122,12 @@ export class School extends DurableObject {
       CREATE INDEX IF NOT EXISTS hits_k ON hits(k, ts);
     `);
     try { this.sql.exec('ALTER TABLE msgs ADD COLUMN reply INTEGER'); } catch (e) { /* đã có cột */ }
+    this.sql.exec(`
+      CREATE TABLE IF NOT EXISTS dms(id INTEGER PRIMARY KEY AUTOINCREMENT, a TEXT, b TEXT, text TEXT, ts INTEGER);
+      CREATE INDEX IF NOT EXISTS dms_a ON dms(a, ts);
+      CREATE INDEX IF NOT EXISTS dms_b ON dms(b, ts);
+      CREATE TABLE IF NOT EXISTS dmread(uid TEXT, peer TEXT, ts INTEGER, PRIMARY KEY(uid, peer));
+    `);
     // bảng xếp hạng: thời gian online (ms), số lần vào, lần vào gần nhất
     try { this.sql.exec('ALTER TABLE users ADD COLUMN on_ms INTEGER DEFAULT 0'); } catch (e) { }
     try { this.sql.exec('ALTER TABLE users ADD COLUMN visits INTEGER DEFAULT 0'); } catch (e) { }
@@ -158,9 +164,10 @@ export class School extends DurableObject {
   roomClaims() {
     return this.all('SELECT c.room,c.khoa,c.lop,c.uid,c.ts,u.name FROM rclaims c LEFT JOIN users u ON u.id=c.uid ORDER BY c.ts');
   }
+  dmOut(r, u) { return { id: r.id, room: 'dm:' + (r.a === u.id ? r.b : r.a), uid: r.a, to: r.b, text: r.text, ts: r.ts, name: u.name, lop: u.lop, khoa: u.khoa, role: u.role, av: u.av || 0 }; }
   noteOut(r) { return { id: r.id, uid: r.uid, text: r.text, ts: r.ts, name: r.name, lop: r.lop, khoa: r.khoa, role: r.role }; }
   replyOf(id) { const x = this.row('SELECT m.id,m.text,u.name FROM msgs m JOIN users u ON u.id=m.uid WHERE m.id=?', id); return x ? { id: x.id, name: x.name, text: String(x.text).slice(0, 80) } : { id, gone: true }; }
-  msgOut(r) { return { id: r.id, room: r.room, uid: r.uid, text: r.text, ts: r.ts, name: r.name, lop: r.lop, khoa: r.khoa, role: r.role, reply: r.reply ? this.replyOf(r.reply) : null }; }
+  msgOut(r) { return { id: r.id, room: r.room, uid: r.uid, text: r.text, ts: r.ts, name: r.name, lop: r.lop, khoa: r.khoa, role: r.role, av: r.av || 0, reply: r.reply ? this.replyOf(r.reply) : null }; }
   photoOut(r) { return { id: r.id, uid: r.uid, kind: r.kind, lop: r.lop, khoa: r.khoa, cap: r.cap, ts: r.ts, ok: r.ok, name: r.name }; }
   meetOut(r) { return { id: r.id, room: r.room, title: r.title, at: r.at, uid: r.uid, name: r.name, lop: r.lop, khoa: r.khoa }; }
   meetRows(extra) {
@@ -234,7 +241,7 @@ export class School extends DurableObject {
         }
         if (path === '/msgs') {
           const room = String(url.searchParams.get('room') || 'truong'); if (!okRoom(room)) return json({ msgs: [] });
-          const rows = this.all("SELECT m.*,u.name,u.lop,u.khoa,u.role FROM msgs m JOIN users u ON u.id=m.uid WHERE m.room=? AND m.ts>? AND u.banned=0 ORDER BY m.id DESC LIMIT 100", room, Date.now() - CHAT_KEEP);
+          const rows = this.all("SELECT m.*,u.name,u.lop,u.khoa,u.role,u.av FROM msgs m JOIN users u ON u.id=m.uid WHERE m.room=? AND m.ts>? AND u.banned=0 ORDER BY m.id DESC LIMIT 100", room, Date.now() - CHAT_KEEP);
           return json({ msgs: rows.reverse().map(r => this.msgOut(r)) });
         }
         if (path === '/rooms') {
@@ -330,6 +337,29 @@ export class School extends DurableObject {
       if (me === 'banned') return json({ error: 'Tên này đã bị chặn.' }, 403);
       if (!me) return json({ error: 'Bạn bấm "Vào trường" và nhập tên trước nhé.' }, 401);
 
+      if (path === '/dm/list') {
+        const peers = this.all('SELECT CASE WHEN a=? THEN b ELSE a END peer, MAX(id) last FROM dms WHERE a=? OR b=? GROUP BY peer ORDER BY last DESC LIMIT 60', me.id, me.id, me.id);
+        const out = []; let total = 0;
+        for (const p of peers) {
+          const u = this.row("SELECT id,name,lop,khoa,role,av,banned,CASE WHEN json_valid(look) THEN json_extract(look,'$.nick') END nick FROM users WHERE id=?", p.peer); if (!u || u.banned) continue;
+          const m = this.row('SELECT a,text,ts FROM dms WHERE id=?', p.last);
+          const rd = this.row('SELECT ts FROM dmread WHERE uid=? AND peer=?', me.id, p.peer);
+          const un = this.row('SELECT COUNT(*) c FROM dms WHERE a=? AND b=? AND ts>?', p.peer, me.id, rd ? rd.ts : 0).c; total += un;
+          out.push({ id: u.id, name: u.name, nick: u.nick, lop: u.lop, khoa: u.khoa, role: u.role, av: u.av, last: String(m.text).slice(0, 60), mine: m.a === me.id ? 1 : 0, ts: m.ts, unread: un });
+        }
+        return json({ list: out, unread: total });
+      }
+      if (path === '/dm/thread') {
+        const w = String(b.with || ''); const o = this.row('SELECT id,name,lop,khoa,role,av,banned FROM users WHERE id=?', w);
+        if (!o || o.banned || o.id === me.id) return json({ error: 'Không tìm thấy người này.' }, 404);
+        const rows = this.all('SELECT * FROM dms WHERE (a=? AND b=?) OR (a=? AND b=?) ORDER BY id DESC LIMIT 100', me.id, w, w, me.id).reverse();
+        this.sql.exec('INSERT INTO dmread(uid,peer,ts) VALUES(?,?,?) ON CONFLICT(uid,peer) DO UPDATE SET ts=excluded.ts', me.id, w, Date.now());
+        return json({ peer: { id: o.id, name: o.name, lop: o.lop, khoa: o.khoa, role: o.role, av: o.av }, msgs: rows.map(r => this.dmOut(r, r.a === me.id ? me : o)) });
+      }
+      if (path === '/dm/read') {
+        this.sql.exec('INSERT INTO dmread(uid,peer,ts) VALUES(?,?,?) ON CONFLICT(uid,peer) DO UPDATE SET ts=excluded.ts', me.id, String(b.with || ''), Date.now());
+        return json({ ok: true });
+      }
       if (path === '/notes') {
         const text = clean(b.text, MAX_NOTE); if (!text) return json({ error: 'Bạn chưa viết gì.' }, 400);
         if (!this.limit('note:' + me.id, 6, 3600000)) return json({ error: 'Mỗi giờ treo tối đa 6 lời nhắn thôi nhé.' }, 429);
@@ -532,7 +562,7 @@ export class School extends DurableObject {
         this.sql.exec('UPDATE users SET banned=1 WHERE id=?', id);
         this.sql.exec('DELETE FROM notes WHERE uid=?', id); this.sql.exec('DELETE FROM msgs WHERE uid=?', id);
         this.sql.exec('DELETE FROM photos WHERE uid=?', id); this.sql.exec('DELETE FROM avatars WHERE uid=?', id); this.sql.exec('DELETE FROM uvote WHERE uid=?', id);
-        this.sql.exec('DELETE FROM sigs WHERE uid=?', id); this.sql.exec('DELETE FROM meets WHERE uid=?', id);
+        this.sql.exec('DELETE FROM sigs WHERE uid=?', id); this.sql.exec('DELETE FROM meets WHERE uid=?', id); this.sql.exec('DELETE FROM dms WHERE a=?', id);
         this.broadcast({ t: 'banned', id });
         for (const ws of this.ctx.getWebSockets()) { const a = ws.deserializeAttachment(); if (a && a.u && a.u.id === id) try { ws.close(4003, 'banned'); } catch (e) { } }
         return json({ ok: true });
@@ -613,6 +643,20 @@ export class School extends DurableObject {
     if (m.t === 'wave' || m.t === 'pose' || m.t === 'dance') {
       const now = Date.now(); if (a.w && now - a.w < 1500) return; a.w = now; ws.serializeAttachment(a);
       this.broadcast({ t: m.t, id: a.u.id, d: m.t === 'dance' ? Math.max(0, Math.min(3, Number(m.d) | 0)) : undefined }, ws);
+      return;
+    }
+    if (m.t === 'dm') {
+      const text = clean(m.text, MAX_MSG); if (!text) return;
+      const now = Date.now(); a.c = (a.c || []).filter(t => t > now - 60000);
+      if (a.c.length >= 15) { ws.send(JSON.stringify({ t: 'err', text: 'Bạn nhắn nhanh quá, đợi một chút nhé.' })); return; }
+      a.c.push(now); ws.serializeAttachment(a);
+      const me = this.row('SELECT * FROM users WHERE id=?', a.u.id); if (!me || me.banned) return;
+      const to = this.row('SELECT * FROM users WHERE id=?', String(m.to || ''));
+      if (!to || to.banned || to.id === me.id) { ws.send(JSON.stringify({ t: 'err', text: 'Không gửi được cho người này.' })); return; }
+      const r = this.row('INSERT INTO dms(a,b,text,ts) VALUES(?,?,?,?) RETURNING id', me.id, to.id, text, now);
+      if (Math.random() < 0.03) this.sql.exec('DELETE FROM dms WHERE ts<?', now - 90 * DAY);
+      const out = JSON.stringify({ t: 'dm', msg: this.dmOut({ id: r.id, a: me.id, b: to.id, text, ts: now }, me), peerId: to.id });
+      for (const w of this.ctx.getWebSockets()) { if (w.readyState !== 1) continue; const x = w.deserializeAttachment(); if (x && x.u && (x.u.id === me.id || x.u.id === to.id)) { try { w.send(out); } catch (e) { } } }
       return;
     }
     if (m.t === 'chat') {
