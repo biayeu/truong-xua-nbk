@@ -4416,16 +4416,19 @@ function buildAdmin(){
    mm.querySelector('#admQ').innerHTML=q.length?q.map(x=>`<div style="border:1px solid #d9c9a8;border-radius:10px;padding:8px"><a href="https://www.youtube.com/watch?v=${esc(x.vid)}" target="_blank" rel="noopener"><b>${esc(x.title||x.vid)}</b></a><div class="small">người gửi: ${esc(x.name||'?')}</div><div style="display:flex;gap:6px;margin-top:6px"><button class="chip" data-ok="${esc(x.vid)}">✅ Cho phát</button><button class="chip" data-no="${esc(x.vid)}">Bỏ</button></div></div>`).join(''):'<p class="small">Không có bài nào đang chờ.</p>'}catch(e){mm.querySelector('#admQ').innerHTML='<p class="small">'+esc(e.message||'Lỗi')+'</p>'}};
  const show=()=>{mm.querySelector('#admIn').hidden=ADM.on;mm.querySelector('#admOn').hidden=!ADM.on;chip.hidden=false;if(ADM.on)refresh()};
  const setOn=on=>{ADM.on=on;if(on&&typeof buildAvatar==='function')buildAvatar();if(!on)upd(0);show();if(!$('#chat').hidden)renderChat()};
- window.__admRes=ok=>{if(ok){try{localStorage.setItem('nbk-adm',ADM.pass)}catch(e){}setOn(true);mm.querySelector('#admMsg').textContent='';if(!mm.hidden)toast('Đã bật Admin')}else{if(ADM.on||ADM.pass){ADM.pass='';try{localStorage.removeItem('nbk-adm')}catch(e){}ADM.on=false}if(mm.querySelector('#admPw').value)mm.querySelector('#admMsg').textContent='Sai mật khẩu.';show()}};
+ window.__admRes=ok=>{if(ok){ADM.retry=0;try{localStorage.setItem('nbk-adm',ADM.pass);localStorage.setItem('nbk-adm-dev','1')}catch(e){}setOn(true);mm.querySelector('#admMsg').textContent='';if(!mm.hidden)toast('Đã bật Admin')}else{const typed=mm.querySelector('#admPw').value;if(typed&&typed===ADM.pass){ADM.pass='';ADM.on=false;mm.querySelector('#admMsg').textContent='Sai mật khẩu.'}else{ADM.on=false;ADM.retry=(ADM.retry||0)+1;if(ADM.pass&&ADM.retry<=3)setTimeout(()=>{try{if(live&&live.readyState===1)live.send(JSON.stringify({t:'adm',pass:ADM.pass}))}catch(e){}},4000*ADM.retry)}show()}};
  window.__admDel=async id=>{if(!confirm('Xoá tin nhắn này?'))return;try{await call({action:'delMsg',id});toast('Đã xoá tin')}catch(e){toast(e.message||'Lỗi')}};
  mm.querySelector('#admGo').onclick=()=>{const v=mm.querySelector('#admPw').value;if(!v)return;ADM.pass=v;mm.querySelector('#admMsg').textContent='Đang kiểm tra…';
-  if(live&&live.readyState===1){live.send(JSON.stringify({t:'adm',pass:v}))}else{call({action:'login'}).then(()=>{try{localStorage.setItem('nbk-adm',v)}catch(e){}setOn(true);mm.querySelector('#admMsg').textContent='';liveStart()}).catch(e=>{ADM.pass='';mm.querySelector('#admMsg').textContent=e.message||'Sai mật khẩu.'})}};
+  if(live&&live.readyState===1){live.send(JSON.stringify({t:'adm',pass:v}))}else{call({action:'login'}).then(()=>{try{localStorage.setItem('nbk-adm',v);localStorage.setItem('nbk-adm-dev','1')}catch(e){}setOn(true);mm.querySelector('#admMsg').textContent='';liveStart()}).catch(e=>{ADM.pass='';mm.querySelector('#admMsg').textContent=e.message||'Sai mật khẩu.'})}};
  mm.querySelector('#admOut').onclick=()=>{ADM.pass='';try{localStorage.removeItem('nbk-adm')}catch(e){}if(live&&live.readyState===1)live.send(JSON.stringify({t:'adm',pass:''}));setOn(false);toast('Đã thoát Admin')};
  mm.querySelector('#admMuOff').onclick=async()=>{try{await call({action:'musicSet',vid:''});toast('Đã tắt nhạc')}catch(e){toast(e.message||'Lỗi')}};
  mm.querySelector('#admQ').addEventListener('click',async e=>{const ok=e.target.closest('[data-ok]'),no=e.target.closest('[data-no]');if(!ok&&!no)return;
   try{await call({action:ok?'musicOk':'musicNo',id:(ok||no).dataset[ok?'ok':'no']});toast(ok?'Đã cho phát':'Đã bỏ bài');refresh()}catch(er){toast(er.message||'Lỗi');refresh()}});
  chip.onclick=()=>{mm.hidden=false;show()};
- const want=ADM.pass||/#admin/i.test(location.hash);
+ let dev='';try{dev=localStorage.getItem('nbk-adm-dev')||''}catch(e){}
+ if(/#admin/i.test(location.hash)){try{localStorage.setItem('nbk-adm-dev','1')}catch(e){}dev='1'}
+ const want=ADM.pass||dev;
+ if(want)chip.hidden=false;
  srvReady.then(ok=>{if(!ok)return;if(want)chip.hidden=false;if(ADM.pass){ADM.on=true;show()}});
  setInterval(()=>{if(ADM.on)refresh()},60000);
 }

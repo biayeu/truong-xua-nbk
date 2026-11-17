@@ -189,3 +189,4 @@ Sếp yêu cầu giao diện KHÁC trang THPT Vĩnh Bảo (thpt-vinh-bao.tranngo
 - Lỗi: trong khung Chat ảnh tròn nằm ngoài chỗ bấm được (chỉ tên bấm được, và chỉ Admin); người thường bấm ảnh không có gì xảy ra.
 - Sửa: bấm ảnh đại diện ở BẤT KỲ đâu (chat, tin riêng, sổ lớp, xếp hạng) → hiện ảnh to + tên. Admin bấm ảnh nhỏ → mở hồ sơ như cũ. Bấm ra ngoài để đóng.
 - Đã chạy thử trên máy thử (mở được, đóng được, không lỗi). CHƯA kiểm trên trang thật. Bấm vào cái đầu nhân vật 3D để xem ảnh: chưa làm.
+- Sửa lỗi MẤT NÚT ADMIN khi tải lại (17/11 23h30): trước đây máy chủ trả "không" (kể cả vì chặn quá 20 lượt kiểm/phút cho CẢ trang) là trang xoá mật khẩu đã nhớ → lần sau mất nút. Nay: chỉ xoá khi sếp tự gõ sai; tự kiểm lại tối đa 3 lần; máy đã từng vào Admin (hoặc mở link có #admin) thì nút LUÔN hiện, kể cả sau khi Thoát Admin. Máy chủ giới hạn kiểm theo từng người và trả "bận" thay vì "sai".

@@ -624,7 +624,7 @@ export class School extends DurableObject {
     const a = ws.deserializeAttachment(); if (!a || !a.u) return;
     if (m.t === 'adm') {
       // người lập trang đăng nhập ngay trong trang 3D: kiểm mật khẩu quản lý, đúng thì gắn huy hiệu Admin
-      if (!this.limit('admws', 20, 60000)) { try { ws.send('{"t":"admno"}'); } catch (e) { } return; }
+      if (!this.limit('admws:' + a.u.id, 20, 60000)) { try { ws.send('{"t":"admbusy"}'); } catch (e) { } return; }
       this.isAdmin(m.pass).then(ok => {
         const b = ws.deserializeAttachment(); if (!b || !b.u) return;
         b.adm = ok ? 1 : 0; ws.serializeAttachment(b);
