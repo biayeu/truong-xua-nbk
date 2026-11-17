@@ -181,6 +181,7 @@ select{min-height:44px}select option{background:#21372d;color:#f3f0e6}
     <button id="bPhoto" class="chip sm hot">📷 Chụp ảnh chung</button>
     <button id="bGb" class="chip sm hot">Lưu bút</button>
     <button id="bOn" class="chip sm hot" hidden>💬 Chat · online 0</button>
+    <button id="bRank" class="chip sm hot" hidden>🏆 Xếp hạng</button>
     <button id="bAdm" class="chip sm hot" hidden>🛡️ Admin</button>
     <button id="bSo" class="chip sm hot" hidden>Sổ lớp</button>
     <button id="bMeet" class="chip sm hot" hidden>Hẹn gặp</button>
@@ -917,6 +918,7 @@ canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercanc
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
 function tap(x,y){
  ndc.set(x/innerWidth*2-1,-(y/innerHeight)*2+1);ray.setFromCamera(ndc,cam);
+ if(typeof ADM!=='undefined'&&ADM.on&&window.__admProfile){let best=null,bd=1e9;peers.forEach(o=>{if(!o.g||!o.info||!o.info.id)return;const h=ray.intersectObject(o.g,true);if(h.length&&h[0].distance<bd){bd=h[0].distance;best=o.info.id}});if(best){window.__admProfile(best);return}}
  const hits=ray.intersectObjects(targets.concat(noteMeshes),true);if(!hits.length)return;
  let o=hits[0].object;while(o&&!o.userData.act)o=o.parent;if(!o)return;
  const a=o.userData.act;
@@ -1510,7 +1512,7 @@ async function srvJoin(){
  }catch(e){if(e.status===403)toast('Tên này đã bị người lập trang chặn.');else toast(e.message||'Chưa kết nối được máy chủ, lưu bút tạm lưu trên máy bạn.')}
 }
 srvReady.then(ok=>{if(!ok)return;
- $('#bOn').hidden=false;$('#bSo').hidden=false;$('#bMeet').hidden=false;$('#gbTabs').hidden=false;$('#nm').hidden=true;$('#nmL').hidden=true;$('#suRecW').hidden=false;
+ $('#bOn').hidden=false;$('#bRank').hidden=false;$('#bSo').hidden=false;$('#bMeet').hidden=false;$('#gbTabs').hidden=false;$('#nm').hidden=true;$('#nmL').hidden=true;$('#suRecW').hidden=false;
  $('#start .small').insertAdjacentHTML('beforeend',' · Lưu bút, sổ lớp và trò chuyện dùng chung với bạn bè.');
  loadNotes();setInterval(()=>{if(!live||live.readyState!==1)loadNotes()},60000);
  api('/uniform').then(j=>{UVOTES=j.votes||{};if(window.__drawSetup)window.__drawSetup()}).catch(()=>{});
@@ -4395,6 +4397,72 @@ function buildAdmin(){
  setInterval(()=>{if(ADM.on)refresh()},60000);
 }
 try{buildAdmin()}catch(e){console.error(e)}
+
+/* ===== Bảng xếp hạng (mọi người xem) + hồ sơ người dùng (chỉ Admin) ===== */
+function buildRank(){
+ const mm=mkModal('rankM','<div class="head"><h2 class="hand">🏆 Bảng xếp hạng</h2><button class="chip" data-close>Đóng</button></div><div id="rkTabs" style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0"></div><div id="rkBody" style="max-height:60vh;overflow:auto"></div><p class="small" id="rkNote"></p>');
+ const T=[['notes','✍️ Viết lưu bút'],['time','⏱ Online lâu'],['visits','🚪 Vào nhiều lần'],['lops','🏫 Lớp đông'],['khoas','🎓 Khóa đông'],['mem','📷 Ký sổ vàng, ảnh chung']];
+ let D=null,tab='notes';
+ const nm=r=>esc(r.nick||r.name||'?');
+ const sub=r=>esc([r.role==='gv'?'Thầy/Cô':'',r.lop&&r.role!=='gv'?'Lớp '+r.lop:'',r.khoa||''].filter(Boolean).join(' · '));
+ const fmt=m=>m>=60?Math.floor(m/60)+' giờ '+(m%60)+' phút':m+' phút';
+ const medal=i=>['🥇','🥈','🥉'][i]||('<span style="display:inline-block;width:1.4em;text-align:center">'+(i+1)+'</span>');
+ const draw=()=>{
+  const B=mm.querySelector('#rkBody');if(!D){B.innerHTML='<p>Đang tải…</p>';return}
+  const L=D[tab]||[];let h='';
+  const unit={notes:'lời nhắn',time:'',visits:'lần vào',lops:'bạn',khoas:'bạn',mem:'lượt'}[tab];
+  if(!L.length){h='<p>Chưa có ai trong bảng này.</p>'}
+  else h=L.map((r,i)=>{
+   const left=(tab==='lops')?'<b>Lớp '+esc(r.lop)+'</b> <span class="small">· khóa '+esc(r.khoa||'?')+'</span>':(tab==='khoas')?'<b>Khóa '+esc(r.khoa)+'</b>':('<b>'+nm(r)+'</b> <span class="small">'+sub(r)+(r.online?' · 🟢 đang online':'')+'</span>');
+   const val=tab==='time'?fmt(r.c):r.c+' '+unit;
+   return '<div style="display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px dashed #d9c9a8"><span style="font-size:18px">'+medal(i)+'</span><div style="flex:1;min-width:0">'+left+'</div><b>'+esc(val)+'</b></div>'}).join('');
+  B.innerHTML=h;
+  mm.querySelector('#rkNote').textContent=tab==='time'||tab==='visits'?'Đếm từ khi có bảng xếp hạng này ('+(D.tracked||0)+' bạn đã được đếm). Chỉ tính khi đang mở trang và có kết nối.':(tab==='mem'?'Điểm = 1 nếu đã ký sổ vàng + số ảnh đã được duyệt.':'Tổng '+(D.total||0)+' bạn đã vào trường.');
+ };
+ const tabs=mm.querySelector('#rkTabs');
+ tabs.innerHTML=T.map(t=>`<button class="chip sm" data-t="${t[0]}">${t[1]}</button>`).join('');
+ const mark=()=>tabs.querySelectorAll('button').forEach(b=>b.classList.toggle('hot',b.dataset.t===tab));
+ tabs.onclick=e=>{const b=e.target.closest('[data-t]');if(!b)return;tab=b.dataset.t;mark();draw()};
+ $('#bRank').onclick=async()=>{mm.hidden=false;D=null;mark();draw();try{D=await api('/rank')}catch(e){mm.querySelector('#rkBody').innerHTML='<p>Không tải được bảng xếp hạng.</p>';return}draw()};
+}
+try{buildRank()}catch(e){console.error(e)}
+
+function buildAdmProfile(){
+ const mm=mkModal('profM','<div class="head"><h2 class="hand">🛡️ Hồ sơ</h2><button class="chip" data-close>Đóng</button></div><div id="pfBody" style="max-height:68vh;overflow:auto"></div>');
+ const call=async(b)=>{const r=await fetch('/api/admin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.assign({pass:ADM.pass},b))});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Lỗi mạng');return j};
+ const VN=Object.fromEntries(VEHS);
+ const when=t=>t?new Date(t).toLocaleString('vi-VN'):'chưa rõ';
+ const fmt=m=>m>=60?Math.floor(m/60)+' giờ '+(m%60)+' phút':m+' phút';
+ let cur=null;
+ const draw=j=>{
+  const u=j.user,B=mm.querySelector('#pfBody');
+  const row=(a,b)=>`<div style="display:flex;gap:8px;padding:3px 0"><span class="small" style="width:120px;flex:none">${a}</span><span>${b}</span></div>`;
+  B.innerHTML=`<div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">${u.av?`<img src="/api/avatar?id=${encodeURIComponent(u.id)}&v=${u.av}" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover">`:'<span style="width:64px;height:64px;border-radius:50%;background:#ddd;display:inline-block"></span>'}<div><b style="font-size:18px">${esc(u.name)}</b>${u.banned?' <span class="small" style="color:#c33">(đã chặn)</span>':''}${u.online?' <span class="small">🟢 đang online</span>':''}<br><span class="small">${u.role==='gv'?'Thầy/Cô':'Học sinh'}${u.lop?' · Lớp '+esc(u.lop):''}${u.khoa?' · khóa '+esc(u.khoa):''}</span></div></div>`
+  +row('Biệt danh',u.nick?esc(u.nick):'—')+row('Đi học bằng',esc(VN[u.veh]||'chưa chọn'))
+  +row('Vào gần nhất',when(u.jn||u.ts))+row('Số lần vào',u.visits||0)+row('Online tổng',fmt(u.onMin||0))
+  +row('Ký sổ vàng',u.sig?'Đã ký':'Chưa')+row('Phòng đã nhận',(j.rooms||[]).length?j.rooms.map(r=>esc('Phòng '+r.room+' ('+r.lop+', '+r.khoa+')')).join('; '):'—')
+  +row('Đã gửi',`${j.counts.notes} lời nhắn · ${j.counts.msgs} tin chat · ${j.counts.photos} ảnh · ${j.counts.meets} lịch hẹn`)
+  +`<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">${u.av?'<button class="chip" data-a="delAvatar">Xoá ảnh đại diện</button>':''}${u.banned?'<button class="chip" data-a="unban">Bỏ chặn</button>':'<button class="chip" data-a="ban" style="color:#c33">Chặn (xoá hết bài của người này)</button>'}</div>`
+  +`<h3 class="hand" style="margin:8px 0 2px">Lời nhắn (${j.notes.length}${j.counts.notes>j.notes.length?'/'+j.counts.notes:''})</h3>`+(j.notes.map(n=>`<div style="border-top:1px dashed #d9c9a8;padding:4px 0"><span class="small">${when(n.ts)}</span><br>${esc(n.text)}</div>`).join('')||'<p class="small">Chưa có.</p>')
+  +`<h3 class="hand" style="margin:8px 0 2px">Tin chat gần đây (${j.msgs.length}${j.counts.msgs>j.msgs.length?'/'+j.counts.msgs:''})</h3>`+(j.msgs.map(n=>`<div style="border-top:1px dashed #d9c9a8;padding:4px 0"><span class="small">${n.room==='truong'?'Toàn trường':esc(n.room)} · ${when(n.ts)}</span><br>${esc(n.text)}</div>`).join('')||'<p class="small">Chưa có (chat giữ 30 ngày).</p>')
+  +`<h3 class="hand" style="margin:8px 0 2px">Ảnh đã gửi (${j.photos.length})</h3><div style="display:flex;gap:8px;flex-wrap:wrap">${j.photos.map(p=>`<div style="width:110px"><a href="/api/photo?id=${p.id}&pass=${encodeURIComponent(ADM.pass)}" target="_blank"><img src="/api/photo?id=${p.id}&pass=${encodeURIComponent(ADM.pass)}" alt="" loading="lazy" style="width:110px;height:80px;object-fit:cover;border-radius:6px"></a><div class="small">${p.ok?'✓ đang hiện':'⏳ chờ duyệt'}${p.cap?' · '+esc(p.cap):''}</div></div>`).join('')||'<p class="small">Chưa có.</p>'}</div>`;
+ };
+ const open=async id=>{cur=id;mm.hidden=false;mm.querySelector('#pfBody').innerHTML='<p>Đang tải…</p>';try{draw(await call({action:'profile',id}))}catch(e){mm.querySelector('#pfBody').innerHTML='<p>'+esc(e.message||'Lỗi')+'</p>'}};
+ window.__admProfile=open;
+ mm.querySelector('#pfBody').addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b||!cur)return;const a=b.dataset.a;
+  if(a==='ban'&&!confirm('Chặn người này và xoá hết lời nhắn, tin chat, ảnh của họ?'))return;
+  try{await call({action:a,id:cur});toast('Xong');open(cur)}catch(er){toast(er.message||'Lỗi')}});
+ /* danh sách tìm người trong bảng Admin */
+ const am=document.getElementById('admM');if(!am)return;
+ const on=am.querySelector('#admOn');if(!on)return;
+ const w=document.createElement('div');w.innerHTML='<h3 class="hand" style="margin:10px 0 4px">Xem hồ sơ người dùng</h3><div style="display:flex;gap:6px"><input id="admFind" placeholder="Gõ tên hoặc lớp…" style="flex:1;min-width:0;padding:8px"><button class="chip" id="admFindGo">Tìm</button></div><div id="admFindL" style="display:grid;gap:4px;margin-top:6px;max-height:30vh;overflow:auto"></div><p class="small">Mẹo: đang đi dạo, bấm vào nhân vật của bạn bè cũng mở được hồ sơ.</p>';
+ on.appendChild(w);
+ const go=async()=>{try{const j=await call({action:'list',q:w.querySelector('#admFind').value.trim()});const us=(j.users||[]).slice(0,40);
+  w.querySelector('#admFindL').innerHTML=us.map(u=>`<button class="chip" data-id="${esc(u.id)}" style="text-align:left">${esc(u.name)} <span class="small">${esc(u.role==='gv'?'Thầy/Cô':[u.lop,u.khoa].filter(Boolean).join(' · '))}${u.banned?' · đã chặn':''}</span></button>`).join('')||'<p class="small">Không thấy ai.</p>'}catch(e){toast(e.message||'Lỗi')}};
+ w.querySelector('#admFindGo').onclick=go;w.querySelector('#admFind').onkeydown=e=>{if(e.key==='Enter')go()};
+ w.querySelector('#admFindL').onclick=e=>{const b=e.target.closest('[data-id]');if(b)open(b.dataset.id)};
+}
+try{buildAdmProfile()}catch(e){console.error(e)}
 
 /* ===== chọn điệu nhảy ở sân khấu và lửa trại ===== */
 function buildNhay(){

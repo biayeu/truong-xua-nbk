@@ -122,6 +122,10 @@ export class School extends DurableObject {
       CREATE INDEX IF NOT EXISTS hits_k ON hits(k, ts);
     `);
     try { this.sql.exec('ALTER TABLE msgs ADD COLUMN reply INTEGER'); } catch (e) { /* đã có cột */ }
+    // bảng xếp hạng: thời gian online (ms), số lần vào, lần vào gần nhất
+    try { this.sql.exec('ALTER TABLE users ADD COLUMN on_ms INTEGER DEFAULT 0'); } catch (e) { }
+    try { this.sql.exec('ALTER TABLE users ADD COLUMN visits INTEGER DEFAULT 0'); } catch (e) { }
+    try { this.sql.exec('ALTER TABLE users ADD COLUMN jn INTEGER DEFAULT 0'); } catch (e) { }
   }
   row(q, ...a) { const r = this.sql.exec(q, ...a).toArray(); return r[0] || null; }
   campList() {
@@ -177,6 +181,22 @@ export class School extends DurableObject {
     this.sql.exec('DELETE FROM meets WHERE at<?', now - 7 * DAY);
     await this.schedule();
   }
+  rank() {
+    const NK = "CASE WHEN json_valid(u.look) THEN json_extract(u.look,'$.nick') END";
+    const sel = "u.id,u.name," + NK + " nick,u.lop,u.khoa,u.role,u.av";
+    const notes = this.all("SELECT " + sel + ",COUNT(n.id) c FROM users u JOIN notes n ON n.uid=u.id WHERE u.banned=0 GROUP BY u.id ORDER BY c DESC, MIN(n.ts) LIMIT 10");
+    const mem = this.all("SELECT * FROM (SELECT " + sel + ",((SELECT COUNT(*) FROM sigs s WHERE s.uid=u.id)+(SELECT COUNT(*) FROM photos p WHERE p.uid=u.id AND p.ok=1)) c FROM users u WHERE u.banned=0) WHERE c>0 ORDER BY c DESC, name LIMIT 10");
+    const now = Date.now(), live = new Map();
+    for (const ws of this.ctx.getWebSockets()) { const a = ws.deserializeAttachment(); if (a && a.u && a.t0 && ws.readyState === 1) live.set(a.u.id, Math.min(now - a.t0, 6 * 3600000)); }
+    const on = this.all("SELECT " + sel + ",COALESCE(u.on_ms,0) ms,COALESCE(u.visits,0) visits FROM users u WHERE u.banned=0 AND (COALESCE(u.on_ms,0)>0 OR COALESCE(u.visits,0)>0)")
+      .map(r => Object.assign(r, { ms: r.ms + (live.get(r.id) || 0), online: live.has(r.id) ? 1 : 0 }));
+    const byTime = on.slice().sort((a, b) => b.ms - a.ms).slice(0, 10).filter(r => r.ms >= 60000).map(r => ({ id: r.id, name: r.name, nick: r.nick, lop: r.lop, khoa: r.khoa, role: r.role, av: r.av, c: Math.round(r.ms / 60000), online: r.online }));
+    const byVisit = on.slice().sort((a, b) => b.visits - a.visits || b.ms - a.ms).slice(0, 10).filter(r => r.visits > 0).map(r => ({ id: r.id, name: r.name, nick: r.nick, lop: r.lop, khoa: r.khoa, role: r.role, av: r.av, c: r.visits }));
+    const lops = this.all("SELECT lop,khoa,COUNT(*) c FROM users WHERE banned=0 AND role='hs' AND lop<>'' GROUP BY lop,khoa ORDER BY c DESC, lop LIMIT 10");
+    const khoas = this.all("SELECT khoa,COUNT(*) c FROM users WHERE banned=0 AND role='hs' AND khoa<>'' GROUP BY khoa ORDER BY c DESC, khoa LIMIT 10");
+    const total = this.row('SELECT COUNT(*) c FROM users WHERE banned=0').c;
+    return { notes, mem, time: byTime, visits: byVisit, lops, khoas, total, tracked: this.row("SELECT COUNT(*) c FROM users WHERE COALESCE(visits,0)>0").c };
+  }
   vehicleStats() {
     const out = {};
     for (const r of this.all("SELECT khoa, COALESCE(json_extract(look,'$.veh'),'xedap') v, COUNT(*) n FROM users WHERE banned=0 AND role='hs' AND khoa<>'' AND json_valid(look) AND json_extract(look,'$.veh') IS NOT NULL GROUP BY khoa, v")) {
@@ -226,6 +246,7 @@ export class School extends DurableObject {
           const people = this.all("SELECT u.id,u.name,u.lop,u.khoa,u.role,u.av,(SELECT COUNT(*) FROM notes n WHERE n.uid=u.id) nc FROM users u WHERE u.banned=0 AND u.khoa<>'' ORDER BY u.name");
           return json({ people });
         }
+        if (path === '/rank') return json(this.rank());
         if (path === '/uniform') return json({ votes: this.uniformVotes() });
         if (path === '/vehicles') return json({ stats: this.vehicleStats() });
         if (path === '/meets') return json({ meets: this.meetRows(), now: Date.now() });
@@ -485,6 +506,19 @@ export class School extends DurableObject {
         const sigs = this.all('SELECT uid,ts FROM sigs');
         return json({ notes, msgs, users, photos, pending, music: this.musicQ(), mpend: this.musicQ().length, claims: this.roomClaims(), meets: this.meetRows(), sigs });
       }
+      case 'profile': {
+        const id = String(b.id || '');
+        const u = this.row('SELECT id,name,lop,khoa,role,sex,season,look,av,banned,ts,COALESCE(on_ms,0) on_ms,COALESCE(visits,0) visits,COALESCE(jn,0) jn FROM users WHERE id=?', id);
+        if (!u) return json({ error: 'Không tìm thấy người này.' }, 404);
+        let look = {}; try { look = JSON.parse(u.look || '{}'); } catch (e) { }
+        let live = 0; for (const ws of this.ctx.getWebSockets()) { const a = ws.deserializeAttachment(); if (a && a.u && a.u.id === id && a.t0 && ws.readyState === 1) live = Math.max(live, Math.min(Date.now() - a.t0, 6 * 3600000)); }
+        const notes = this.all('SELECT id,text,ts FROM notes WHERE uid=? ORDER BY id DESC LIMIT 50', id);
+        const msgs = this.all('SELECT id,room,text,ts FROM msgs WHERE uid=? ORDER BY id DESC LIMIT 50', id);
+        const photos = this.all('SELECT id,kind,lop,khoa,cap,ok,ts FROM photos WHERE uid=? ORDER BY id DESC LIMIT 30', id);
+        const rooms = this.all('SELECT room,khoa,lop FROM rclaims WHERE uid=?', id);
+        const counts = { notes: this.row('SELECT COUNT(*) c FROM notes WHERE uid=?', id).c, msgs: this.row('SELECT COUNT(*) c FROM msgs WHERE uid=?', id).c, photos: this.row('SELECT COUNT(*) c FROM photos WHERE uid=?', id).c, meets: this.row('SELECT COUNT(*) c FROM meets WHERE uid=?', id).c };
+        return json({ user: { id: u.id, name: u.name, lop: u.lop, khoa: u.khoa, role: u.role, sex: u.sex, season: u.season, nick: look.nick || '', veh: look.veh || '', av: u.av, banned: u.banned, ts: u.ts, jn: u.jn, visits: u.visits, onMin: Math.round((u.on_ms + live) / 60000), online: live > 0 ? 1 : 0, sig: !!this.row('SELECT 1 FROM sigs WHERE uid=?', id) }, counts, notes, msgs, photos, rooms });
+      }
       case 'delNote': this.sql.exec('DELETE FROM notes WHERE id=?', Number(b.id)); this.broadcast({ t: 'delnote', id: Number(b.id) }); return json({ ok: true });
       case 'delMsg': this.sql.exec('DELETE FROM msgs WHERE id=?', Number(b.id)); this.broadcast({ t: 'delmsg', id: Number(b.id) }); return json({ ok: true });
       case 'photoOk': this.sql.exec('UPDATE photos SET ok=1 WHERE id=?', Number(b.id)); this.broadcast({ t: 'photos' }); return json({ ok: true });
@@ -543,7 +577,9 @@ export class School extends DurableObject {
     this.ctx.acceptWebSocket(server);
     if (!u || u === 'banned') { server.close(4003, 'no'); return new Response(null, { status: 101, webSocket: client }); }
     const pu = this.pub(u);
-    server.serializeAttachment({ u: pu, p: null, c: [] });
+    const now0 = Date.now();
+    server.serializeAttachment({ u: pu, p: null, c: [], t0: now0 });
+    this.sql.exec('UPDATE users SET visits=COALESCE(visits,0)+CASE WHEN ?-COALESCE(jn,0)>1800000 THEN 1 ELSE 0 END, jn=? WHERE id=?', now0, now0, u.id);
     const seen = new Map();
     for (const ws of this.ctx.getWebSockets()) {
       if (ws === server || ws.readyState !== 1) continue;
@@ -598,6 +634,10 @@ export class School extends DurableObject {
   webSocketError(ws) { this.left(ws); }
   left(ws) {
     const a = ws.deserializeAttachment(); if (!a || !a.u) return;
+    if (a.t0) { // cộng thời gian online (tối đa 6 giờ mỗi lần)
+      const add = Math.max(0, Math.min(Date.now() - a.t0, 6 * 3600000));
+      try { this.sql.exec('UPDATE users SET on_ms=COALESCE(on_ms,0)+? WHERE id=?', add, a.u.id); a.t0 = 0; ws.serializeAttachment(a); } catch (e) { }
+    }
     const still = this.ctx.getWebSockets().some(o => o !== ws && o.readyState === 1 && (o.deserializeAttachment() || {}).u?.id === a.u.id);
     if (!still) this.broadcast({ t: 'leave', id: a.u.id }, ws);
     try { ws.close(1000, 'bye'); } catch (e) { }
