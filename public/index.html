@@ -1639,6 +1639,20 @@ function renderSo(){const k=$('#soK').value,ps=soPeople.filter(p=>p.khoa===k);co
  const ls=Object.keys(by).sort((a,b)=>a==='Thầy cô'?-1:b==='Thầy cô'?1:a.localeCompare(b,'vi',{numeric:true}));
  $('#soBody').innerHTML=ls.length?ls.map(l=>`<div class="cls"><h3>${l==='Thầy cô'||l==='Chưa ghi lớp'?esc(l):'Lớp '+esc(l)} <span class="small">(${by[l].length})</span></h3>${by[l].map(p=>`<button data-u="${esc(p.id)}" data-n="${esc(p.name)}">${p.av?`<img class="mav" src="/api/avatar?id=${esc(p.id)}&v=${p.av}" alt="">`:''}${esc(p.name)}${ME&&p.id===ME.id?' (bạn)':''}${p.nc?' · ✎'+p.nc:''}${[...peers.keys()].includes(p.id)||(ME&&p.id===ME.id)?' 🟢':''}</button>${ME&&p.id===ME.id?'':`<button data-dm="${esc(p.id)}" data-n="${esc(p.name)}" title="Nhắn riêng" style="padding:0 8px">✉</button>`}`).join('')}</div>`).join(''):'<p class="small">Khóa này chưa có ai ghi tên. Bạn rủ bạn bè vào nhé.</p>'}
 $('#soK').onchange=renderSo;$('#bSo').onclick=openSo;
+/* Bấm vào ảnh đại diện (chat, sổ lớp, tin riêng, xếp hạng...) -> xem ảnh to; Admin bấm ảnh nhỏ -> mở hồ sơ */
+document.addEventListener('click',e=>{
+ const im=e.target.closest&&e.target.closest('img');if(!im)return;if(im.closest('#avBig'))return;
+ const m=/^\/api\/avatar\?id=([^&]+)/.exec(im.getAttribute('src')||'');if(!m)return;
+ e.preventDefault();e.stopPropagation();
+ const id=decodeURIComponent(m[1]);
+ if(ADM.on&&window.__admProfile&&im.clientWidth<60){window.__admProfile(id);return}
+ let nm='';const pe=peers.get(id);if(pe&&pe.info)nm=pe.info.name;else if(ME&&ME.id===id)nm=ME.name;else{const sp=(typeof soPeople!=='undefined'&&soPeople||[]).find(x=>x.id===id);if(sp)nm=sp.name}
+ const old=document.getElementById('avBig');if(old)old.remove();
+ const d=document.createElement('div');d.id='avBig';
+ d.style.cssText='position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.78);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer';
+ d.innerHTML='<img src="'+esc(im.getAttribute('src'))+'" alt="" style="width:min(80vw,70vh,420px);height:min(80vw,70vh,420px);object-fit:cover;border-radius:12px;border:6px solid #fff;background:#fff">'+(nm?'<b style="color:#fff;font-size:20px">'+esc(nm)+'</b>':'')+'<span style="color:#ddd;font-size:13px">Bấm ra ngoài để đóng</span>';
+ d.onclick=()=>d.remove();document.body.appendChild(d);
+},true);
 $('#soBody').addEventListener('click',e=>{const d=e.target.closest('[data-dm]');if(d){$('#solop').hidden=true;const p=soPeople.find(x=>x.id===d.dataset.dm);openDm(d.dataset.dm,p?{id:p.id,name:p.name,lop:p.lop,khoa:p.khoa,role:p.role,av:p.av}:null);return}const b=e.target.closest('[data-u]');if(!b)return;if(ADM.on&&window.__admProfile){window.__admProfile(b.dataset.u);return}$('#solop').hidden=true;openNotesOf(b.dataset.u,b.dataset.n)});
 
 /* ---------- ĐỢT 3a: nhiều lớp học, tự ghi lớp lên cửa, bàn có tên, tìm lớp, nhảy ---------- */

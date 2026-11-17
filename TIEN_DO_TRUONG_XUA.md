@@ -184,3 +184,8 @@ Sếp yêu cầu giao diện KHÁC trang THPT Vĩnh Bảo (thpt-vinh-bao.tranngo
 - 2 quán cạnh cổng (MINH HOẠ): "Quán nước Cổng Viện" (u 619) và "Cháo – bún Cổng Viện" (u 666), vào trong được, gọi món, có nhóm chat (máy chủ cho phép quan-vien1, quan-vien2).
 - Nút "Đi tới… Bệnh viện Đa khoa Nam Am (cổng)"; bản đồ nhỏ có nhãn.
 - Đã chạy thử máy (Chrome không đầu, giờ trưa): không lỗi script; va chạm cổng/tường rào/toà nhà/cây đúng. CHƯA thử trên điện thoại, CHƯA thử trên mạng thật.
+
+## Đợt 16 (17/11/2026 khuya) – sửa bấm ảnh đại diện
+- Lỗi: trong khung Chat ảnh tròn nằm ngoài chỗ bấm được (chỉ tên bấm được, và chỉ Admin); người thường bấm ảnh không có gì xảy ra.
+- Sửa: bấm ảnh đại diện ở BẤT KỲ đâu (chat, tin riêng, sổ lớp, xếp hạng) → hiện ảnh to + tên. Admin bấm ảnh nhỏ → mở hồ sơ như cũ. Bấm ra ngoài để đóng.
+- Đã chạy thử trên máy thử (mở được, đóng được, không lỗi). CHƯA kiểm trên trang thật. Bấm vào cái đầu nhân vật 3D để xem ảnh: chưa làm.
