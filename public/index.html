@@ -1594,11 +1594,11 @@ $('#chTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(
 let chReply=null;
 function setReply(m){chReply=m?{id:m.id,name:m.name,text:m.text}:null;const r=$('#chRep');r.hidden=!chReply;if(chReply)r.querySelector('span').textContent='Trả lời '+chReply.name+': '+String(chReply.text).slice(0,60);}
 $('#chRepX').onclick=()=>{setReply(null);$('#chIn').focus()};
-$('#chList').addEventListener('click',e=>{const db=e.target.closest('[data-del]');if(db&&ADM.on){if(window.__admDel)window.__admDel(+db.dataset.del);return}const rb=e.target.closest('[data-rp]');if(rb){const m=(chatCache[chatRoom]||[]).find(x=>x.id===+rb.dataset.rp);if(m){setReply(m);$('#chIn').focus()}return}
+$('#chList').addEventListener('click',e=>{const pf=e.target.closest('[data-prof]');if(pf&&ADM.on&&window.__admProfile){window.__admProfile(pf.dataset.prof);return}const db=e.target.closest('[data-del]');if(db&&ADM.on){if(window.__admDel)window.__admDel(+db.dataset.del);return}const rb=e.target.closest('[data-rp]');if(rb){const m=(chatCache[chatRoom]||[]).find(x=>x.id===+rb.dataset.rp);if(m){setReply(m);$('#chIn').focus()}return}
  const q=e.target.closest('[data-go]');if(q){const el=$('#chList').querySelector('.msg[data-id="'+q.dataset.go+'"]');if(el){el.scrollIntoView({block:'center'});el.classList.add('hl');setTimeout(()=>el.classList.remove('hl'),1500)}}});
 async function loadRoom(r){if(!chatLoaded[r]){try{const j=await api('/msgs?room='+encodeURIComponent(r));const have=chatCache[r]||[];chatCache[r]=j.msgs.concat(have.filter(x=>!j.msgs.some(y=>y.id===x.id)));chatLoaded[r]=true}catch(e){chatCache[r]=chatCache[r]||[]}}renderChat()}
 function renderChat(){const L=$('#chList');const arr=chatCache[chatRoom]||[];
- L.innerHTML=arr.length?arr.map(x=>{const mine=ME&&x.uid===ME.id;const q=x.reply?(x.reply.gone?'<span class="quote">Tin gốc đã bị xoá</span>':`<span class="quote" data-go="${x.reply.id}"><b>${esc(x.reply.name)}</b>: ${esc(x.reply.text)}</span>`):'';return `<div class="msg${mine?' me':''}" data-id="${x.id}"><b>${mine?'Bạn':esc(x.name)}</b><span class="small">${esc(subOf(x))} · ${new Date(x.ts).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'numeric'})}</span> <button type="button" class="rp" data-rp="${x.id}">↩ Trả lời</button>${ADM.on?`<button type="button" class="rp" data-del="${x.id}">🗑 Xoá</button>`:''}${q}<p>${esc(x.text)}</p></div>`}).join(''):'<p class="small" style="padding:12px 0">Chưa có tin nhắn nào. Bạn chào mọi người trước nhé.</p>';
+ L.innerHTML=arr.length?arr.map(x=>{const mine=ME&&x.uid===ME.id;const q=x.reply?(x.reply.gone?'<span class="quote">Tin gốc đã bị xoá</span>':`<span class="quote" data-go="${x.reply.id}"><b>${esc(x.reply.name)}</b>: ${esc(x.reply.text)}</span>`):'';return `<div class="msg${mine?' me':''}" data-id="${x.id}"><b${ADM.on&&!mine?` data-prof="${esc(x.uid)}" style="cursor:pointer;text-decoration:underline dotted" title="Bấm để xem hồ sơ"`:''}>${mine?'Bạn':esc(x.name)}</b><span class="small">${esc(subOf(x))} · ${new Date(x.ts).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'numeric'})}</span> <button type="button" class="rp" data-rp="${x.id}">↩ Trả lời</button>${ADM.on?`<button type="button" class="rp" data-del="${x.id}">🗑 Xoá</button>`:''}${q}<p>${esc(x.text)}</p></div>`}).join(''):'<p class="small" style="padding:12px 0">Chưa có tin nhắn nào. Bạn chào mọi người trước nhé.</p>';
  L.scrollTop=L.scrollHeight}
 function gotChat(m){(chatCache[m.room]=chatCache[m.room]||[]);if(!chatCache[m.room].some(x=>x.id===m.id))chatCache[m.room].push(m);
  const o=peers.get(m.uid);if(o)bubbleOn(o.g,m.text,o);else if(ME&&m.uid===ME.id&&avatar.visible)bubbleOn(avatar,m.text);
@@ -1620,7 +1620,7 @@ function renderSo(){const k=$('#soK').value,ps=soPeople.filter(p=>p.khoa===k);co
  const ls=Object.keys(by).sort((a,b)=>a==='Thầy cô'?-1:b==='Thầy cô'?1:a.localeCompare(b,'vi',{numeric:true}));
  $('#soBody').innerHTML=ls.length?ls.map(l=>`<div class="cls"><h3>${l==='Thầy cô'||l==='Chưa ghi lớp'?esc(l):'Lớp '+esc(l)} <span class="small">(${by[l].length})</span></h3>${by[l].map(p=>`<button data-u="${esc(p.id)}" data-n="${esc(p.name)}">${p.av?`<img class="mav" src="/api/avatar?id=${esc(p.id)}&v=${p.av}" alt="">`:''}${esc(p.name)}${ME&&p.id===ME.id?' (bạn)':''}${p.nc?' · ✎'+p.nc:''}${[...peers.keys()].includes(p.id)||(ME&&p.id===ME.id)?' 🟢':''}</button>`).join('')}</div>`).join(''):'<p class="small">Khóa này chưa có ai ghi tên. Bạn rủ bạn bè vào nhé.</p>'}
 $('#soK').onchange=renderSo;$('#bSo').onclick=openSo;
-$('#soBody').addEventListener('click',e=>{const b=e.target.closest('[data-u]');if(!b)return;$('#solop').hidden=true;openNotesOf(b.dataset.u,b.dataset.n)});
+$('#soBody').addEventListener('click',e=>{const b=e.target.closest('[data-u]');if(!b)return;if(ADM.on&&window.__admProfile){window.__admProfile(b.dataset.u);return}$('#solop').hidden=true;openNotesOf(b.dataset.u,b.dataset.n)});
 
 /* ---------- ĐỢT 3a: nhiều lớp học, tự ghi lớp lên cửa, bàn có tên, tìm lớp, nhảy ---------- */
 // mỗi đoạn nhà: [x, z, xoay, từ x, đến x (theo trục dọc của dãy), số tầng, tên dãy]
@@ -4415,13 +4415,14 @@ function buildRank(){
   else h=L.map((r,i)=>{
    const left=(tab==='lops')?'<b>Lớp '+esc(r.lop)+'</b> <span class="small">· khóa '+esc(r.khoa||'?')+'</span>':(tab==='khoas')?'<b>Khóa '+esc(r.khoa)+'</b>':('<b>'+nm(r)+'</b> <span class="small">'+sub(r)+(r.online?' · 🟢 đang online':'')+'</span>');
    const val=tab==='time'?fmt(r.c):r.c+' '+unit;
-   return '<div style="display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px dashed #d9c9a8"><span style="font-size:18px">'+medal(i)+'</span><div style="flex:1;min-width:0">'+left+'</div><b>'+esc(val)+'</b></div>'}).join('');
+   return '<div'+(r.id&&ADM.on?' data-prof="'+esc(r.id)+'" style="cursor:pointer;display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px dashed #d9c9a8" title="Bấm để xem hồ sơ"':' style="display:flex;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px dashed #d9c9a8"')+'><span style="font-size:18px">'+medal(i)+'</span><div style="flex:1;min-width:0">'+left+'</div><b>'+esc(val)+'</b></div>'}).join('');
   B.innerHTML=h;
-  mm.querySelector('#rkNote').textContent=tab==='time'||tab==='visits'?'Đếm từ khi có bảng xếp hạng này ('+(D.tracked||0)+' bạn đã được đếm). Chỉ tính khi đang mở trang và có kết nối.':(tab==='mem'?'Điểm = 1 nếu đã ký sổ vàng + số ảnh đã được duyệt.':'Tổng '+(D.total||0)+' bạn đã vào trường.');
+  mm.querySelector('#rkNote').textContent=(ADM.on?'Admin: bấm vào một người để xem hồ sơ. ':'')+(tab==='time'||tab==='visits'?'Đếm từ khi có bảng xếp hạng này ('+(D.tracked||0)+' bạn đã được đếm). Chỉ tính khi đang mở trang và có kết nối.':(tab==='mem'?'Điểm = 1 nếu đã ký sổ vàng + số ảnh đã được duyệt.':'Tổng '+(D.total||0)+' bạn đã vào trường.'));
  };
  const tabs=mm.querySelector('#rkTabs');
  tabs.innerHTML=T.map(t=>`<button class="chip sm" data-t="${t[0]}">${t[1]}</button>`).join('');
  const mark=()=>tabs.querySelectorAll('button').forEach(b=>b.classList.toggle('hot',b.dataset.t===tab));
+ mm.querySelector('#rkBody').onclick=e=>{const r=e.target.closest('[data-prof]');if(r&&ADM.on&&window.__admProfile)window.__admProfile(r.dataset.prof)};
  tabs.onclick=e=>{const b=e.target.closest('[data-t]');if(!b)return;tab=b.dataset.t;mark();draw()};
  $('#bRank').onclick=async()=>{mm.hidden=false;D=null;mark();draw();try{D=await api('/rank')}catch(e){mm.querySelector('#rkBody').innerHTML='<p>Không tải được bảng xếp hạng.</p>';return}draw()};
 }
