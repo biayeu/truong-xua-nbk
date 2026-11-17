@@ -120,6 +120,10 @@ export class School extends DurableObject {
       CREATE TABLE IF NOT EXISTS camps(id INTEGER PRIMARY KEY, uid TEXT, style INTEGER, ts INTEGER, seen INTEGER);
       CREATE TABLE IF NOT EXISTS hits(k TEXT, ts INTEGER);
       CREATE INDEX IF NOT EXISTS hits_k ON hits(k, ts);
+      CREATE INDEX IF NOT EXISTS notes_uid ON notes(uid);
+      CREATE INDEX IF NOT EXISTS msgs_uid ON msgs(uid);
+      CREATE INDEX IF NOT EXISTS photos_uid ON photos(uid);
+      CREATE INDEX IF NOT EXISTS photos_ok ON photos(ok);
     `);
     try { this.sql.exec('ALTER TABLE msgs ADD COLUMN reply INTEGER'); } catch (e) { /* đã có cột */ }
     this.sql.exec(`
@@ -527,6 +531,11 @@ export class School extends DurableObject {
     const q = clean(b.q, 40), like = '%' + q + '%';
     switch (b.action) {
       case 'login': return json({ ok: true });
+      case 'pend': {
+        // bản NHẸ cho nút Admin trong trang 3D: chỉ nhạc chờ + ảnh chờ duyệt (không đọc cả kho dữ liệu)
+        const photos = this.all("SELECT p.id,p.uid,p.kind,p.lop,p.khoa,p.cap,p.ts,p.ok,u.name FROM photos p JOIN users u ON u.id=p.uid WHERE p.ok=0 ORDER BY p.id DESC LIMIT 30").map(r => this.photoOut(r));
+        return json({ music: this.musicQ(), photos, pending: photos.length });
+      }
       case 'list': {
         const notes = this.all("SELECT n.*,u.name,u.lop,u.khoa,u.role FROM notes n JOIN users u ON u.id=n.uid WHERE (?='' OR n.text LIKE ? OR u.name LIKE ?) ORDER BY n.id DESC LIMIT 200", q, like, like).map(r => this.noteOut(r));
         const msgs = this.all("SELECT m.*,u.name,u.lop,u.khoa,u.role FROM msgs m JOIN users u ON u.id=m.uid WHERE (?='' OR m.text LIKE ? OR u.name LIKE ?) ORDER BY m.id DESC LIMIT 200", q, like, like).map(r => this.msgOut(r));

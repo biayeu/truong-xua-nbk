@@ -4412,7 +4412,7 @@ function buildAdmin(){
  const mm=mkModal('admM','<div class="head"><h2 class="hand">🛡️ Admin</h2><button class="chip" data-close>Đóng</button></div><div id="admIn"><p class="small">Nhập mật khẩu quản lý (cái sếp dùng ở trang /quan-ly) để bật chế độ Admin. Máy này sẽ nhớ, lần sau tự vào.</p><div style="display:flex;gap:6px;margin:8px 0"><input id="admPw" type="password" autocomplete="current-password" placeholder="Mật khẩu quản lý" style="flex:1;min-width:0;padding:8px"><button class="chip" id="admGo">Vào</button></div><p class="small" id="admMsg"></p></div><div id="admOn" hidden><p class="small">Bạn đang là <b>Admin</b>: có huy hiệu trên đầu. Trong khung Chat, mỗi tin có nút 🗑 Xoá.</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0"><button class="chip" id="admMuOff">⏹ Tắt nhạc đang phát</button><button class="chip" id="admOut">Thoát Admin</button></div><h3 class="hand" style="margin:10px 0 4px">Nhạc chờ duyệt</h3><div id="admQ" style="display:grid;gap:8px"></div></div>');
  const call=async(b)=>{const r=await fetch('/api/admin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.assign({pass:ADM.pass},b))});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Lỗi mạng');return j};
  const upd=n=>{chip.textContent='🛡️ Admin'+(ADM.on&&n?' · '+n+' nhạc chờ':'')+(ADM.on&&window.__admPhotoN?' · '+window.__admPhotoN+' ảnh chờ':'')};
- const refresh=async()=>{if(!ADM.on)return;try{const j=await call({action:'list'});const q=Array.isArray(j.music)?j.music:[];upd(q.length);
+ const refresh=async()=>{if(!ADM.on||document.hidden)return;try{const j=await call({action:'pend'});const q=Array.isArray(j.music)?j.music:[];upd(q.length);
    mm.querySelector('#admQ').innerHTML=q.length?q.map(x=>`<div style="border:1px solid #d9c9a8;border-radius:10px;padding:8px"><a href="https://www.youtube.com/watch?v=${esc(x.vid)}" target="_blank" rel="noopener"><b>${esc(x.title||x.vid)}</b></a><div class="small">người gửi: ${esc(x.name||'?')}</div><div style="display:flex;gap:6px;margin-top:6px"><button class="chip" data-ok="${esc(x.vid)}">✅ Cho phát</button><button class="chip" data-no="${esc(x.vid)}">Bỏ</button></div></div>`).join(''):'<p class="small">Không có bài nào đang chờ.</p>'}catch(e){mm.querySelector('#admQ').innerHTML='<p class="small">'+esc(e.message||'Lỗi')+'</p>'}};
  const show=()=>{mm.querySelector('#admIn').hidden=ADM.on;mm.querySelector('#admOn').hidden=!ADM.on;chip.hidden=false;if(ADM.on)refresh()};
  const setOn=on=>{ADM.on=on;if(on&&typeof buildAvatar==='function')buildAvatar();if(!on)upd(0);show();if(!$('#chat').hidden)renderChat()};
@@ -4430,7 +4430,7 @@ function buildAdmin(){
  const want=ADM.pass||dev;
  if(want)chip.hidden=false;
  srvReady.then(ok=>{if(!ok)return;if(want)chip.hidden=false;if(ADM.pass){ADM.on=true;show()}});
- setInterval(()=>{if(ADM.on)refresh()},60000);
+ setInterval(()=>{if(ADM.on)refresh()},120000);
 }
 try{buildAdmin()}catch(e){console.error(e)}
 
@@ -4497,11 +4497,11 @@ function buildAdmProfile(){
  on.appendChild(w);
  /* ảnh chờ duyệt ngay trong bảng Admin */
  const pw=document.createElement('div');pw.innerHTML='<h3 class="hand" style="margin:10px 0 4px">Ảnh chờ duyệt <span id="admPhN" class="small"></span></h3><div id="admPh" style="display:grid;gap:8px"></div>';on.insertBefore(pw,on.firstElementChild.nextSibling);
- const loadPh=async()=>{if(!ADM.on)return;try{const j=await call({action:'list'});const L=(j.photos||[]).filter(x=>!x.ok);window.__admPhotoN=L.length;const chip=document.getElementById('bAdm');if(chip)chip.textContent='🛡️ Admin'+(L.length?' · '+L.length+' ảnh chờ':'');
+ const loadPh=async()=>{if(!ADM.on||document.hidden)return;try{const j=await call({action:'pend'});const L=(j.photos||[]).filter(x=>!x.ok);window.__admPhotoN=L.length;const chip=document.getElementById('bAdm');if(chip)chip.textContent='🛡️ Admin'+(L.length?' · '+L.length+' ảnh chờ':'');
    pw.querySelector('#admPhN').textContent=L.length?'('+L.length+')':'';
    pw.querySelector('#admPh').innerHTML=L.length?L.map(x=>`<div style="border:1px solid #d9c9a8;border-radius:10px;padding:8px;display:flex;gap:8px"><a href="/api/photo?id=${x.id}&pass=${encodeURIComponent(ADM.pass)}" target="_blank"><img src="/api/photo?id=${x.id}&pass=${encodeURIComponent(ADM.pass)}" alt="" style="width:120px;height:90px;object-fit:cover;border-radius:6px"></a><div style="flex:1;min-width:0"><b>${esc(x.name||'')}</b><div class="small">${x.kind==='chung'?'Ảnh chụp chung':'Ảnh lớp'}${x.lop?' · Lớp '+esc(x.lop):''}${x.khoa?' · '+esc(x.khoa):''}${x.cap?'<br>'+esc(x.cap):''}</div><div style="display:flex;gap:6px;margin-top:6px"><button class="chip" data-pok="${x.id}">Cho hiện</button><button class="chip" data-pno="${x.id}" style="color:#c33">Xoá</button></div></div></div>`).join(''):'<p class="small">Chưa có ảnh nào chờ duyệt.</p>'}catch(e){}};
  pw.addEventListener('click',async e=>{const ok=e.target.closest('[data-pok]'),no=e.target.closest('[data-pno]');if(!ok&&!no)return;try{await call({action:ok?'photoOk':'photoDel',id:(ok||no).dataset[ok?'pok':'pno']});toast(ok?'Đã cho hiện ảnh':'Đã xoá ảnh');loadPh()}catch(er){toast(er.message||'Lỗi')}});
- document.getElementById('bAdm').addEventListener('click',()=>setTimeout(loadPh,50));setInterval(loadPh,30000);setTimeout(loadPh,4000);
+ document.getElementById('bAdm').addEventListener('click',()=>setTimeout(loadPh,50));setInterval(loadPh,120000);setTimeout(loadPh,4000);
  const go=async()=>{try{const j=await call({action:'list',q:w.querySelector('#admFind').value.trim()});const us=(j.users||[]).slice(0,40);
   w.querySelector('#admFindL').innerHTML=us.map(u=>`<button class="chip" data-id="${esc(u.id)}" style="text-align:left">${esc(u.name)} <span class="small">${esc(u.role==='gv'?'Thầy/Cô':[u.lop,u.khoa].filter(Boolean).join(' · '))}${u.banned?' · đã chặn':''}</span></button>`).join('')||'<p class="small">Không thấy ai.</p>'}catch(e){toast(e.message||'Lỗi')}};
  w.querySelector('#admFindGo').onclick=go;w.querySelector('#admFind').onkeydown=e=>{if(e.key==='Enter')go()};
